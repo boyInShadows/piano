@@ -53,6 +53,26 @@ test('reduces visible octaves before reducing key widths', () => {
   assert.equal(getOctavesForWidth(320), 1);
 });
 
+test('compact windows fit seven white targets and still reach all 88 notes', () => {
+  const middle = createKeyLayout(60, 1, true);
+  assert.equal(middle.end, 71);
+  assert.equal(middle.whiteCount, 7);
+  const reached = new Set();
+  let start = 21;
+  for (let window = 0; window < 10; window += 1) {
+    const layout = createKeyLayout(start, 1, true);
+    assert.ok(layout.whiteCount <= 7);
+    assert.equal(layout.keys[0].accidental, false);
+    assert.equal(layout.keys.at(-1).accidental, false);
+    layout.keys.forEach((key) => reached.add(key.midi));
+    if (layout.end === 108) break;
+    start = Math.floor(layout.start / 12) * 12 + 12;
+  }
+  assert.equal(createKeyLayout(-100, 1, true).start, 21);
+  assert.equal(createKeyLayout(500, 1, true).end, 108);
+  assert.deepEqual([...reached].sort((a, b) => a - b), Array.from({ length: 88 }, (_, index) => index + 21));
+});
+
 test('maps physical codes to visible notes and keeps the low partial octave honest', () => {
   assert.equal(getShortcutNote('KeyA', 60, 72), 60);
   assert.equal(getShortcutNote('KeyW', 60, 72), 61);
