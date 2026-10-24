@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { PIANO_TITLE } from '../lib/pianoConfig';
 import { createAudioEngine } from '../lib/audioEngine';
+import { createPreferenceStore } from '../lib/pianoPreferences';
 import { usePianoInput } from '../hooks/usePianoInput';
 import { usePianoViewport } from '../hooks/usePianoViewport';
 import soundbank from '../../public/audio/piano/salamander-v1/manifest.json';
@@ -13,12 +14,11 @@ import MetronomeControl from './MetronomeControl';
 export default function PianoApp() {
   const [view, setView] = useState('Play');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [showNotes, setShowNotes] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [preferenceStore] = useState(createPreferenceStore);
+  const { preferences, error: preferenceError } = useSyncExternalStore(preferenceStore.subscribe, preferenceStore.getSnapshot, preferenceStore.getServerSnapshot);
+  const { volume, showNotes, showShortcuts, bpm } = preferences;
   const [audio, setAudio] = useState({ status: 'not-enabled', loaded: 0 });
-  const [volume, setVolume] = useState(35);
   const [muted, setMuted] = useState(false);
-  const [bpm, setBpm] = useState(90);
   const metronome = audio.metronome ?? { running: false, beat: 0 };
   const engine = useRef(null);
   const input = usePianoInput(engine);
@@ -88,17 +88,17 @@ export default function PianoApp() {
       <section id="piano-settings" className="settings-panel" hidden={!settingsOpen} aria-labelledby="settings-title">
         <h2 id="settings-title">Keyboard settings</h2>
         <label>
-          <input type="checkbox" checked={showNotes} onChange={(event) => setShowNotes(event.target.checked)} />
+          <input type="checkbox" checked={showNotes} onChange={(event) => preferenceStore.update({ showNotes: event.target.checked })} />
           Show note names
         </label>
         <label>
-          <input type="checkbox" checked={showShortcuts} onChange={(event) => setShowShortcuts(event.target.checked)} />
+          <input type="checkbox" checked={showShortcuts} onChange={(event) => preferenceStore.update({ showShortcuts: event.target.checked })} />
           Show keyboard shortcuts
         </label>
         <label>Volume
           <input type="range" min="0" max="100" value={volume} onChange={(event) => {
             const value = Number(event.target.value);
-            setVolume(value);
+            preferenceStore.update({ volume: value });
             engine.current?.setVolume(value / 100);
           }} />
         </label>
@@ -108,6 +108,7 @@ export default function PianoApp() {
         }}>{muted ? 'Unmute' : 'Mute'}</button>
         {compactChoice && <button type="button" onClick={() => { input.stopAll(); setCompactChoice(false); }}>Use landscape-first layout</button>}
         <p>Shortcut labels use US keyboard positions.</p>
+        {preferenceError && <p role="status">{preferenceError}</p>}
       </section>
 
       <section hidden={view !== 'Play'} aria-label="Piano">
@@ -140,7 +141,7 @@ export default function PianoApp() {
                   if (metronome.running) engine.current.stopMetronome();
                   else engine.current.startMetronome(bpm);
                 }}
-                onTempo={(value) => { setBpm(value); engine.current.setTempo(value); }} />}
+                onTempo={(value) => { preferenceStore.update({ bpm: value }); engine.current.setTempo(value); }} />}
               {audio.status === 'ready' && <button type="button" aria-label="Latch sustain" aria-pressed={input.latched} onClick={() => input.setLatched(!input.latched)}>{input.sustain ? 'Sustain on' : 'Sustain off'}</button>}
               <span className="pedal-status">{input.sustain ? 'Pedal on' : 'Pedal off'}</span>
               <button type="button" onClick={input.stopAll}>Stop all</button>
@@ -164,6 +165,7 @@ export default function PianoApp() {
         <p>Enable sound, then click or touch keys. Drag across the keyboard to slide between notes. Focus the piano to use physical US-position shortcuts, or use the arrow keys and hold Enter to audition a note.</p>
         <p>Space is a momentary pedal while the piano has focus. Latch sustain keeps the pedal down until switched off. Stop all or Escape clears notes and both pedal states. Leaving the page, changing range, or losing focus also releases notes.</p>
         <p>After enabling sound, switch Metronome on and adjust Tempo from 40 to 240 BPM. The four numbers mark the beat; beat one has a higher click. Mute silences the piano and click while the beat keeps running. Stop all, navigation, Settings or an interruption stops the metronome; it does not restart automatically.</p>
+        <p>Volume, note names, shortcut hints and tempo are saved in this browser when storage is available. Sound activation, mute, sustain and running transport reset on reload. Compact mode lasts only until reload.</p>
         <p>On a small screen, turn your phone sideways for larger keys. If rotation is locked, choose Use compact keyboard on the Play screen. This choice lasts until you reload; landscape automatically restores the larger range. If keys cannot fit, close Settings, zoom out or use a wider window.</p>
         <p>Enable sound to load the grand piano. Recording is being prepared.</p>
         <p>Sound: <a href={soundbank.sourceUrl}>{soundbank.title}</a> by {soundbank.author}, licensed under <a href={soundbank.licenseUrl}>{soundbank.license}</a>. The web bank selects 16 samples and caps long tails at 12 seconds with a short fade.</p>
