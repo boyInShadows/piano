@@ -48,6 +48,7 @@ test('metronome stays gesture gated, schedules 4/4 on the audio clock, and survi
   await toggle.click();
   await expect.poll(() => page.evaluate(() => window.metronomeAudio.clicks.length)).toBeGreaterThanOrEqual(5);
   const events = await page.evaluate(() => window.metronomeAudio.clicks.slice(0, 5));
+  await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
   expect(events.map((event) => event.frequency)).toEqual([1320, 880, 880, 880, 1320]);
   for (let index = 1; index < events.length; index += 1) expect(events[index].time - events[index - 1].time).toBeCloseTo(0.25, 3);
   expect(events.every((event) => event.time >= event.now)).toBe(true);
@@ -97,6 +98,7 @@ test('rapid toggles, stop-all, range, focus, visibility, settings and suspension
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await interrupt();
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('slider', { name: 'Tempo', exact: true })).toHaveValue('240');
     const stopped = await page.evaluate(() => window.metronomeAudio.clicks.length);
     await page.waitForTimeout(180);
     expect(await page.evaluate(() => window.metronomeAudio.clicks.length)).toBe(stopped);
@@ -106,6 +108,21 @@ test('rapid toggles, stop-all, range, focus, visibility, settings and suspension
   await expect(page.getByRole('button', { name: 'Resume sound', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Resume sound', exact: true }).click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.click();
+  await page.evaluate(async () => {
+    const context = window.metronomeAudio.contexts[0];
+    await context.suspend();
+    window.metronomeAudio.resume = context.resume.bind(context);
+    context.resume = () => Promise.reject(new Error('Simulated resume failure'));
+  });
+  await page.getByRole('button', { name: 'Resume sound', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Retry sound', exact: true })).toBeVisible();
+  await page.evaluate(() => { window.metronomeAudio.contexts[0].resume = window.metronomeAudio.resume; });
+  await page.getByRole('button', { name: 'Retry sound', exact: true }).click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.click();
+  expect(await peak(page, 600)).toBeGreaterThan(0.0001);
+  await page.getByRole('button', { name: 'Stop all', exact: true }).click();
   expect(await page.evaluate(() => window.metronomeAudio.contexts.length)).toBe(1);
 });
 

@@ -87,13 +87,13 @@ export default function PianoApp() {
 
       <section id="piano-settings" className="settings-panel" hidden={!settingsOpen} aria-labelledby="settings-title">
         <h2 id="settings-title">Keyboard settings</h2>
-        <label>
+        <label className="hint-setting">
           <input type="checkbox" checked={showNotes} onChange={(event) => preferenceStore.update({ showNotes: event.target.checked })} />
-          Show note names
+          <span>Show note names</span>
         </label>
-        <label>
+        <label className="hint-setting">
           <input type="checkbox" checked={showShortcuts} onChange={(event) => preferenceStore.update({ showShortcuts: event.target.checked })} />
-          Show keyboard shortcuts
+          <span>Show keyboard shortcuts</span>
         </label>
         <label>Volume
           <input type="range" min="0" max="100" value={volume} onChange={(event) => {

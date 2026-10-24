@@ -54,6 +54,8 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
 
 test('landscape and tablet geometry retains usable keys and controls', async ({ page }, testInfo) => {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   for (const [width, height] of [[568, 320], [667, 375], [844, 390], [768, 1024], [1024, 768], [1280, 720], [1440, 900]]) {
     await page.setViewportSize({ width, height });
     await assertGeometry(page, { width, height }, testInfo);

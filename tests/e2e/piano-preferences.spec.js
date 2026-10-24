@@ -102,6 +102,12 @@ test('settings remain reachable on portrait, short landscape and enlarged text l
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Show note names' }).check();
   await page.getByRole('slider', { name: 'Volume', exact: true }).fill('70');
+  for (const name of ['Show note names', 'Show keyboard shortcuts']) {
+    const checkbox = page.getByRole('checkbox', { name });
+    const input = await checkbox.boundingBox();
+    const label = await checkbox.locator('..').boundingBox();
+    expect(Math.abs(input.y + input.height / 2 - label.y - label.height / 2)).toBeLessThan(1);
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('settings-enlarged-text.png') });
 });

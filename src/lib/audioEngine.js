@@ -125,6 +125,8 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
         return status === 'ready';
       } catch {
         controller?.abort();
+        metronome?.dispose();
+        metronome = undefined;
         master?.dispose();
         limiter?.dispose();
         master = null;

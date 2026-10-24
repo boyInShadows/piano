@@ -318,6 +318,11 @@ svg {
 .metronome-beats .is-current { color: var(--surface); background: var(--ink); }
 .tempo-control { display: grid; justify-items: center; font-size: 0.75rem; line-height: 1.2; }
 .settings-panel label { flex-wrap: wrap; }
+.settings-panel .hint-setting {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  width: 100%;
+}
 input[type="range"] {
   width: 112px;
   min-height: 44px;

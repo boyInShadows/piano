@@ -86,6 +86,27 @@ test('metronome shares the ready engine and is stopped by global cleanup, suspen
   } finally { f.cleanup(); }
 });
 
+test('a failed audio resume retires the old metronome output before retry', async () => {
+  const f = setup();
+  try {
+    await f.engine.enable();
+    f.engine.startMetronome(90);
+    const context = f.contexts[0];
+    context.state = 'suspended';
+    context.dispatchEvent(new Event('statechange'));
+    const resume = context.resume.bind(context);
+    context.resume = async () => { throw new Error('Resume failed'); };
+    assert.equal(await f.engine.enable(), false);
+    assert.equal(f.clocks[0].disposed, true);
+    context.resume = resume;
+    assert.equal(await f.engine.enable(), true);
+    f.engine.startMetronome(90);
+    assert.equal(f.clocks.length, 2);
+    assert.equal(f.contexts.length, 1);
+    assert.equal(f.states.at(-1).metronome.running, true);
+  } finally { f.cleanup(); }
+});
+
 test('activation is lazy, coalesces clicks and dispatches at the immediate audio time', async () => {
   const fixture = setup();
   try {
