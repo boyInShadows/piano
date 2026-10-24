@@ -1,5 +1,6 @@
 import soundbank from '../../public/audio/piano/salamander-v1/manifest.json' with { type: 'json' };
 import { getNoteName } from './pianoNotes.js';
+import { createMetronome } from './metronome.js';
 
 async function loadToneClasses() {
   // The pinned class entry avoids the main entry's eager default AudioContext.
@@ -23,6 +24,9 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
   let volume = 0.35;
   let muted = false;
   let sustain = false;
+  let metronome;
+  let metronomeState = { running: false, beat: 0 };
+  let audioState;
   let buffers = new Map();
   const voices = new Map();
   const total = soundbank.samples.length;
@@ -30,7 +34,8 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
   function publish(next, loaded = 0, decodedBytes = 0) {
     if (disposed) return;
     status = next;
-    onState({ status, loaded, total, decodedBytes });
+    audioState = { status, loaded, total, decodedBytes };
+    onState({ ...audioState, metronome: metronomeState });
   }
 
   function finish(voice) {
@@ -50,6 +55,7 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
   }
 
   function stopAll() {
+    metronome?.stop();
     sustain = false;
     for (const voice of voices.values()) {
       if (nativeContext.state === 'running') releaseVoice(voice, 0.005);
@@ -191,9 +197,20 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     master?.gain.rampTo(muted ? 0 : volume, 0.02, nativeContext.currentTime);
   }
 
+  function startMetronome(bpm) {
+    if (disposed || status !== 'ready' || nativeContext.state !== 'running') return false;
+    metronome ??= createMetronome({ context: nativeContext, toneContext, Clock: tone.Clock, output: master.input,
+      onState(next) {
+        metronomeState = next;
+        if (!disposed) onState({ ...audioState, metronome: next });
+      } });
+    return metronome.start(bpm);
+  }
+
   function dispose() {
     if (disposed) return;
     disposed = true;
+    metronome?.dispose();
     controller?.abort();
     for (const voice of voices.values()) {
       voice.source.stop(nativeContext.currentTime);
@@ -207,6 +224,7 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     else if (nativeContext && nativeContext.state !== 'closed') nativeContext.close().catch(() => {});
   }
 
-  return { enable, attack, release, setSustain, setVolume, setMuted, stopAll, dispose,
+  return { enable, attack, release, setSustain, setVolume, setMuted, stopAll, dispose, startMetronome,
+    stopMetronome: () => metronome?.stop(), setTempo: (bpm) => metronome?.setTempo(bpm),
     now: () => nativeContext?.currentTime ?? 0 };
 }
