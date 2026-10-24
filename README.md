@@ -2,7 +2,30 @@
 
 A browser piano based on a restrained polished-black acoustic instrument. V1 scope is free play, sustain, a metronome, and recording/replay saved in this browser. The owner name is fixed in V1.
 
-Repository setup is complete; application implementation starts on `development`.
+The JavaScript application foundation is complete on `development`. The temporary page confirms server rendering and client interactivity. The playable instrument, audio, and recordings are the next implementation tasks.
+
+## Run and verify
+
+Use Node.js 24 LTS and npm. Verified locally with Node 24.11.1 and npm 11.6.2. Dependencies are pinned in `package-lock.json`: Next.js 16.4.3 and React 19.3.1.
+
+```sh
+npm ci
+npm run dev
+```
+
+Open http://localhost:3000. No environment variables or external services are required for this foundation.
+
+```sh
+npx playwright install msedge
+npm run check
+npm run test:dev
+```
+
+The browser tests use installed Microsoft Edge (Chromium). Skip the browser-install command if Edge is already installed, as on this PC. `check` runs lint, the production build, and the browser smoke test. `test:dev` verifies the development server separately. The test starts and stops its own server on port 3100 and checks server-rendered content, client interaction, console errors, and narrow-screen overflow. Reports and screenshots stay local under `playwright-report/` and `test-results/`. No additional browser was downloaded here. A different browser channel can be selected in `playwright.config.js` when expanding browser coverage.
+
+For a production preview, run `npm run build` followed by `npm start`. This is a local preview, not a public deployment.
+
+The foundation follows the official [Next installation](https://nextjs.org/docs/app/getting-started/installation) and [server/client boundary](https://nextjs.org/docs/app/getting-started/server-and-client-components) guidance. The intended browser baseline is Chrome/Edge 111+, Firefox 111+, and Safari 16.4+; only the foundation smoke journey has been tested in local Edge. Physical iPhone/Android, Chrome, Firefox, Safari, sound, touch playing, and recording acceptance remain open.
 
 ## Development rules
 
@@ -16,6 +39,8 @@ Repository setup is complete; application implementation starts on `development`
 ## Local project context
 
 The local `masterPlan.md` and `astraTasks.md` contain Astra's specification and acceptance criteria. `pending.md` tracks execution; `AGENTS.md` contains persistent project rules. Shared tools from `D:\coding\Tools` are linked for Codex and Claude through `D:\tools\agents-shared\skills`.
+
+codebase-memory indexes the project for structural lookup. A small source-only Graphify graph is kept in local `graphify-out/` with JSON, HTML, report, and health evidence. Its initial AST graph has one unresolved stylesheet import because CSS is outside extraction coverage; inspect CSS directly. Ignored local plans and task logs must be backed up separately because Git does not include them.
 
 Working defaults are a landscape-first phone keyboard with an accessible compact fallback, an adaptive desktop note range, English copy, one licensed grand-piano sound, and local recordings. Accounts, cloud sync, downloadable audio, lessons, MIDI, and name editing are deferred.
 
