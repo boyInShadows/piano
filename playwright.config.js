@@ -8,14 +8,14 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'docs/artifacts/playwright-report' }]],
   use: {
-    baseURL: 'http://127.0.0.1:3100',
+    baseURL: 'http://127.0.0.1:3217',
     browserName: 'chromium',
     channel: 'msedge',
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run start -- --hostname 127.0.0.1 --port 3100',
-    url: 'http://127.0.0.1:3100',
+    command: 'npm run start -- --hostname 127.0.0.1 --port 3217',
+    url: 'http://127.0.0.1:3217',
     reuseExistingServer: false,
   },
 });

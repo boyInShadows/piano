@@ -6,7 +6,7 @@ export default defineConfig({
   reporter: 'list',
   webServer: {
     ...config.webServer,
-    command: 'npm run dev -- --hostname 127.0.0.1 --port 3100',
+    command: 'npm run dev -- --hostname 127.0.0.1 --port 3217',
     timeout: 120000,
   },
 });

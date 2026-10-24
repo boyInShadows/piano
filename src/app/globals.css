@@ -1,16 +1,21 @@
 :root {
   color-scheme: light;
   --page: #f4f3f0;
+  --surface: #fafaf8;
   --ink: #202124;
   --muted: #565a60;
   --cabinet: #090a0b;
   --brass: #b99b61;
+  --ivory: #f8f5eb;
+  --felt: #6f161d;
 }
 
 * {
   box-sizing: border-box;
 }
-
+[hidden] {
+  display: none !important;
+}
 body {
   margin: 0;
   background: var(--page);
@@ -18,56 +23,311 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.6;
 }
-
-main {
-  width: min(100% - 32px, 960px);
-  margin: 48px auto;
+::selection {
+  background: #ddd0b3;
+  color: var(--ink);
 }
-
-header {
-  padding: 32px 24px;
-  background: var(--cabinet);
-  color: var(--brass);
+.piano-app {
+  width: min(100% - 48px, 1248px);
+  margin: 64px auto;
 }
-
-h1 {
-  margin: 0;
+.app-bar {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 24px;
+}
+.wordmark {
+  margin: 0 auto 0 0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(1.75rem, 5vw, 2.5rem);
-  font-weight: 400;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
-section {
-  padding: 24px 0;
-}
-
-h2 {
   font-size: 1.125rem;
 }
-
-section p {
-  max-width: 60ch;
-  color: var(--muted);
+nav {
+  display: flex;
+  gap: 8px;
 }
-
 button {
   min-height: 44px;
   padding: 8px 16px;
-  border: 1px solid var(--ink);
+  border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
   cursor: pointer;
 }
-
-button:hover {
-  background: #e5e3dd;
+button:hover:not(:disabled) {
+  background: #e7e5df;
 }
-
-button:focus-visible {
+button[aria-current="page"] {
+  border-bottom-color: var(--ink);
+  border-radius: 0;
+}
+.settings-button {
+  border-color: #c6c4bd;
+}
+button:disabled {
+  cursor: default;
+}
+.range-bar button:disabled {
+  color: var(--muted);
+  opacity: 0.6;
+}
+button:focus-visible, input:focus-visible, .key-viewport:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 4px;
+}
+.key-viewport:focus-visible {
+  outline-color: var(--ivory);
+  outline-offset: 2px;
+}
+.settings-panel, .content-panel {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid #d7d5ce;
+}
+.settings-panel {
+  margin-bottom: 24px;
+}
+.settings-panel label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  width: fit-content;
+}
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ink);
+}
+h2 {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+}
+.content-panel p, .settings-panel p {
+  max-width: 65ch;
+  color: var(--muted);
+}
+.empty-state {
+  margin-top: 32px;
+}
+.piano-cabinet {
+  padding: 0 16px;
+  border: 1px solid #151718;
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(100deg, #202224, #050607 3%, #141618 97%, #292b2d);
+  box-shadow: 0 18px 36px #090a0b24;
+}
+.piano-lid {
+  height: 36px;
+  border-bottom: 4px double #505254;
+  background: linear-gradient(165deg, #1c1e20, #070809 65%, #2a2c2e);
+}
+.fallboard {
+  display: grid;
+  place-items: center;
+  min-height: 136px;
+  padding: 24px;
+  border-bottom: 1px solid #685a3e;
+  background: linear-gradient(140deg, #060708 30%, #202224 65%, #0a0b0c 85%);
+}
+h1 {
+  margin: 0;
+  max-width: 100%;
+  color: var(--brass);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.125rem, 2.5vw, 1.75rem);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.045em;
+  overflow-wrap: anywhere;
+}
+.key-frame {
+  padding: 16px 12px 0;
+  background: #060708;
+}
+.key-viewport {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #79776f #151617;
+}
+.key-surface {
+  position: relative;
+  height: clamp(150px, 29vh, 264px);
+  border-top: 5px solid var(--felt);
+}
+.piano-key {
+  position: absolute;
+  top: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0 0 4px 4px;
+  line-height: 1.2;
+}
+.piano-key--white {
+  height: 100%;
+  z-index: 1;
+  border: 1px solid #77746c;
+  background: linear-gradient(90deg, #e2dfd5, var(--ivory) 8%, #fffdf5 80%, #d9d6cc);
+  box-shadow: inset 0 -8px 1px #c4c0b4;
+  color: #414139;
+}
+.piano-key--black {
+  height: 63%;
+  z-index: 2;
+  border: 1px solid #030405;
+  background: linear-gradient(90deg, #030405, #252729 20%, #121315 80%, #030405);
+  box-shadow: inset 0 -7px 1px #070809, 0 4px 3px #0007;
+  color: #eeebe3;
+}
+.piano-key[aria-pressed="true"] {
+  transform: translateY(2px);
+}
+.piano-key--white[aria-pressed="true"] {
+  background: #d9d4c6;
+  box-shadow: inset 0 -3px 0 #6b6250;
+}
+.piano-key--black[aria-pressed="true"] {
+  background: #3d4144;
+  box-shadow: inset 0 -3px 0 #b99b61;
+}
+.key-labels {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  font-size: 0.6875rem;
+  pointer-events: none;
+}
+.shortcut-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.front-rail {
+  height: 28px;
+  border-top: 2px solid #383a3c;
+  background: linear-gradient(#141617, #060708);
+}
+.range-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px 8px;
+  margin: 0 -16px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.range-bar output {
+  min-width: 7ch;
+  text-align: center;
+  font-size: 0.875rem;
+}
+.range-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.preview-status {
+  margin: 24px 0 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 700px) {
+  .piano-app {
+    width: calc(100% - 24px);
+    margin: 24px auto;
+  }
+  .app-bar {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .wordmark {
+    flex: 1;
+  }
+  nav {
+    order: 3;
+    width: 100%;
+  }
+  nav button {
+    flex: 1;
+  }
+  .piano-cabinet {
+    padding: 0 8px;
+  }
+  .piano-lid {
+    height: 20px;
+  }
+  .fallboard {
+    min-height: 64px;
+    padding: 16px;
+  }
+  .key-frame {
+    padding: 8px 4px 0;
+  }
+  .range-bar {
+    gap: 4px;
+    margin: 0 -8px;
+    padding: 8px 0;
+  }
+  .range-bar button {
+    padding: 8px;
+    font-size: 0.75rem;
+    gap: 2px;
+  }
+  .range-bar svg {
+    width: 12px;
+  }
+  .content-panel, .settings-panel {
+    padding: 20px;
+  }
+}
+
+@media (max-height: 450px) and (min-width: 500px) {
+  .piano-app {
+    margin: 8px auto;
+  }
+  .app-bar {
+    flex-wrap: nowrap;
+    margin-bottom: 8px;
+  }
+  nav {
+    order: 0;
+    width: auto;
+  }
+  .wordmark {
+    flex: 1;
+  }
+  .piano-lid {
+    height: 8px;
+  }
+  .fallboard {
+    min-height: 44px;
+    padding: 8px;
+  }
+  .key-frame {
+    padding-top: 8px;
+  }
+  .range-bar {
+    padding: 4px;
+  }
+  .front-rail {
+    height: 16px;
+  }
+  .preview-status {
+    margin-top: 12px;
+  }
 }
