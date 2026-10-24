@@ -2,7 +2,7 @@
 
 A browser piano based on a restrained polished-black acoustic instrument. V1 scope is free play, sustain, a metronome, and recording/replay saved in this browser. The owner name is fixed in V1.
 
-The concept-07 piano shell is implemented on `development`: polished-black cabinetry, DOM-rendered keys, adaptive octave windows, range navigation, Help/Recordings views, and note/shortcut display settings. The MIDI note model covers A0–C8. Sound and recording are not available yet; the preview says so explicitly.
+The concept-07 piano shell and audio startup are implemented on `development`: adaptive A0–C8 note windows, range navigation, Help/Recordings views, label settings, sound activation/loading/retry/resume, volume/mute, and Stop all. Keyboard input is the next implementation slice; recording is still pending.
 
 ## Run and verify
 
@@ -26,6 +26,14 @@ The browser tests use installed Microsoft Edge (Chromium). Skip the browser-inst
 For a production preview, run `npm run build` followed by `npm start`. This is a local preview, not a public deployment.
 
 The foundation follows the official [Next installation](https://nextjs.org/docs/app/getting-started/installation) and [server/client boundary](https://nextjs.org/docs/app/getting-started/server-and-client-components) guidance, including the guides bundled with the installed Next package. The intended browser baseline is Chrome/Edge 111+, Firefox 111+, and Safari 16.4+; the shell has been tested in local Edge. Physical iPhone/Android, Chrome, Firefox, Safari, sound, touch playing, and recording acceptance remain open. The full mobile orientation/fallback and interruption behavior is still pending.
+
+## Piano sound
+
+The self-hosted Grand Piano bank derives from **Salamander Grand Piano by Alexander Holm**, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), from the [pinned Tonejs/audio source](https://github.com/Tonejs/audio/tree/869b6f8d9cddb47d966238c012041480b1ce517a/salamander). The sound is not represented as a Yamaha CFX recording.
+
+The curated bank selects 16 MP3s; files longer than 12 seconds are capped with a 100ms fade and re-encoded at ffmpeg/libmp3lame quality 3. Shorter files are unchanged. Stereo and sample rate are preserved. Transfer is 986,522 bytes, with a 55,327,120-byte decoded estimate. The bank manifest records files, hashes, sizes and transformations; full licence and upstream notice ship beside the audio under `public/audio/piano/salamander-v1/`. This versioned directory is immutable; changed banks require a new version path. Long held notes end naturally with their samples.
+
+Tone 15.1.22 supplies the context clock, master gain and limiter; native buffer sources give explicit voice handles for the 64-voice policy. A single context is unlocked during the user's activation gesture. Samples and Tone code load on demand. Ordinary note scheduling uses the immediate audio time, without the default 100ms scheduling offset. Real output latency and physical mobile behavior remain unverified.
 
 ## Development rules
 

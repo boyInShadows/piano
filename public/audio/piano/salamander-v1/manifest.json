@@ -1,0 +1,176 @@
+{
+  "id": "salamander-holm-tone-869b6f8-six-semitone-v1",
+  "name": "Grand Piano",
+  "title": "Salamander Grand Piano",
+  "author": "Alexander Holm",
+  "license": "CC BY 3.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+  "sourceUrl": "https://github.com/Tonejs/audio/tree/869b6f8d9cddb47d966238c012041480b1ce517a/salamander",
+  "upstreamCommit": "869b6f8d9cddb47d966238c012041480b1ce517a",
+  "transformations": "Selected 16 upstream MP3 files. Files longer than 12 seconds capped at 12 seconds with a 100ms end fade and re-encoded using ffmpeg libmp3lame quality 3; shorter files are unchanged. Stereo/sample rate preserved. Playback repitches the nearest sample and uses one fixed input velocity.",
+  "baseUrl": "/audio/piano/salamander-v1/",
+  "transferBytes": 986522,
+  "decodedBytesEstimate": 55327120,
+  "samples": [
+    {
+      "midi": 21,
+      "file": "A0.mp3",
+      "bytes": 86394,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "c02a4e3eded28f4baf48ecfe7e93c2ee1f1799dbeaf2ec1b3090e2935308bba7"
+    },
+    {
+      "midi": 27,
+      "file": "Ds1.mp3",
+      "bytes": 93792,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "e9950d49a107dfb30ac0fe217a50cf091f1ed1859375103bf16ea704aaee6e4d"
+    },
+    {
+      "midi": 33,
+      "file": "A1.mp3",
+      "bytes": 94071,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "586cb834c20fe85fa551120814732232289307761a19dadb4998d9eb591f5531"
+    },
+    {
+      "midi": 39,
+      "file": "Ds2.mp3",
+      "bytes": 96773,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "ebc2e6403e7b0fde0a97d1fb23f4f717696170330817cc6ebd4d7a215c7d0b11"
+    },
+    {
+      "midi": 45,
+      "file": "A2.mp3",
+      "bytes": 92200,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "23dc39034c977c7d7e3df963aab7bd30bab910f3af47599e1cca163b36b57abb"
+    },
+    {
+      "midi": 51,
+      "file": "Ds3.mp3",
+      "bytes": 83609,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "7afeab9cf75b61554383b7dd79aae535e085277883f54d721cf35be9134a389e"
+    },
+    {
+      "midi": 57,
+      "file": "A3.mp3",
+      "bytes": 77808,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "fc53121b5467bc6d6905aa07dfe84067f4030573c51378c3899834319ab776be"
+    },
+    {
+      "midi": 63,
+      "file": "Ds4.mp3",
+      "bytes": 68954,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "cb8ba189af1dfb1edccb220c491e91f1273883350968857d742d34256e22df52"
+    },
+    {
+      "midi": 69,
+      "file": "A4.mp3",
+      "bytes": 64535,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "e917a71655e96848e95c76c491f53fd60ff62d6b74a8d8cf603216d0d425be99"
+    },
+    {
+      "midi": 75,
+      "file": "Ds5.mp3",
+      "bytes": 61451,
+      "duration": 12,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 4233600,
+      "sha256": "f90eb9260e0e393d74c9cdbbd857ce4c775ae4788b4da983fa31901e8fca67cb"
+    },
+    {
+      "midi": 81,
+      "file": "A5.mp3",
+      "bytes": 45747,
+      "duration": 10.53712,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 3717496,
+      "sha256": "9e5cee1fe9cf68b7193623d46a27c8956e572c1ff234ca0e11599b556050dec6"
+    },
+    {
+      "midi": 87,
+      "file": "Ds6.mp3",
+      "bytes": 31395,
+      "duration": 6.699478,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 2363576,
+      "sha256": "eb643014d9f926f1a5f9f51fc4a1ed8c07c6da36ce164d5b221d7b878a53f142"
+    },
+    {
+      "midi": 93,
+      "file": "A6.mp3",
+      "bytes": 30013,
+      "duration": 6.806939,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 2401496,
+      "sha256": "b6064a657592c63c03561d2ce1092607c14e1d8091445d50065d0ec819ff6fbc"
+    },
+    {
+      "midi": 99,
+      "file": "Ds7.mp3",
+      "bytes": 22136,
+      "duration": 4.872585,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 1719048,
+      "sha256": "d51f4c51bed719f51e75ad22d5b9ac4b4d1a4749d02ef31ea03696de46fa5e77"
+    },
+    {
+      "midi": 105,
+      "file": "A7.mp3",
+      "bytes": 18730,
+      "duration": 4.025306,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 1420128,
+      "sha256": "751c0a0acd00bad6e52749063dac56a0def9870242b053c68ab45cbe8d083fc1"
+    },
+    {
+      "midi": 108,
+      "file": "C8.mp3",
+      "bytes": 18914,
+      "duration": 3.881429,
+      "sampleRate": 44100,
+      "channels": 2,
+      "decodedBytesEstimate": 1369376,
+      "sha256": "b4b5f321751b544ee7f0d6d3e3f1ef52873dd4a6aee91ba41e6c8e61e17a084c"
+    }
+  ]
+}

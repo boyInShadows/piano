@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PIANO_TITLE } from '../lib/pianoConfig';
+import { createAudioEngine } from '../lib/audioEngine';
+import soundbank from '../../public/audio/piano/salamander-v1/manifest.json';
 import PianoKeyboard from './PianoKeyboard';
 
 export default function PianoApp() {
@@ -9,6 +11,24 @@ export default function PianoApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [audio, setAudio] = useState({ status: 'not-enabled', loaded: 0 });
+  const [volume, setVolume] = useState(35);
+  const [muted, setMuted] = useState(false);
+  const engine = useRef(null);
+
+  useEffect(() => () => {
+    engine.current?.dispose();
+    engine.current = null;
+  }, []);
+
+  function enableSound() {
+    if (!engine.current) {
+      engine.current = createAudioEngine(setAudio);
+      engine.current.setVolume(volume / 100);
+      engine.current.setMuted(muted);
+    }
+    void engine.current.enable();
+  }
 
   return (
     <main className="piano-app">
@@ -60,7 +80,30 @@ export default function PianoApp() {
           <PianoKeyboard showNotes={showNotes} showShortcuts={showShortcuts} />
           <div className="front-rail" aria-hidden="true" />
         </div>
-        <p className="preview-status">Sound and recording are not available in this preview yet.</p>
+        <div className="audio-controls">
+          {audio.status !== 'ready' && (
+            <button type="button" onClick={enableSound} disabled={audio.status === 'loading'}>
+              {{ 'not-enabled': 'Enable sound', loading: 'Loading piano…', failed: 'Retry sound', suspended: 'Resume sound' }[audio.status]}
+            </button>
+          )}
+          <p role="status">
+            {{ 'not-enabled': 'Enable sound to load the grand piano.', loading: 'Loading piano', ready: 'Sound ready', failed: 'Sound could not load. Retry, or use a browser with Web Audio support.', suspended: 'Sound interrupted. Resume when you are ready.' }[audio.status]}
+          </p>
+          {audio.status === 'loading' && <progress aria-label="Piano samples loaded" value={audio.loaded} max={soundbank.samples.length} />}
+          <label>Volume
+            <input type="range" min="0" max="100" value={volume} onChange={(event) => {
+              const value = Number(event.target.value);
+              setVolume(value);
+              engine.current?.setVolume(value / 100);
+            }} />
+          </label>
+          <button type="button" aria-pressed={muted} onClick={() => {
+            setMuted(!muted);
+            engine.current?.setMuted(!muted);
+          }}>{muted ? 'Unmute' : 'Mute'}</button>
+          <button type="button" onClick={() => engine.current?.stopAll()}>Stop all</button>
+        </div>
+        <p className="preview-status">Keyboard input and recording are being prepared.</p>
       </section>
 
       <section className="content-panel" hidden={view !== 'Recordings'} aria-labelledby="recordings-title">
@@ -75,7 +118,8 @@ export default function PianoApp() {
         <p>Use Lower octave and Higher octave to explore the piano from A0 to C8.</p>
         <p>Open Settings to show note names or US-position keyboard shortcuts.</p>
         <p>On a small screen, turn your phone sideways for more room. You can scroll the keyboard in a narrow window.</p>
-        <p>Sound and recording are not available in this preview yet.</p>
+        <p>Enable sound to load the grand piano. Recording is being prepared.</p>
+        <p>Sound: <a href={soundbank.sourceUrl}>{soundbank.title}</a> by {soundbank.author}, licensed under <a href={soundbank.licenseUrl}>{soundbank.license}</a>. The web bank selects 16 samples and caps long tails at 12 seconds with a short fade.</p>
       </section>
     </main>
   );

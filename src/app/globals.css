@@ -245,6 +245,38 @@ svg {
   font-size: 0.875rem;
 }
 
+.audio-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+.audio-controls p {
+  flex: 1 1 180px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.audio-controls button {
+  border-color: #c6c4bd;
+}
+.audio-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+input[type="range"] {
+  width: 112px;
+  min-height: 44px;
+  accent-color: var(--ink);
+}
+progress {
+  width: 100px;
+  accent-color: var(--ink);
+}
+
 @media (max-width: 700px) {
   .piano-app {
     width: calc(100% - 24px);
