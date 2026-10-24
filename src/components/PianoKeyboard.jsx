@@ -3,25 +3,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { createKeyLayout, getNoteName, getOctavesForWidth, getShortcutLabel, getShortcutNote } from '../lib/pianoNotes';
 
-export default function PianoKeyboard({ showNotes, showShortcuts, ready, pressedNotes, onPress, onMove, onRelease, onMomentary, onStopAll }) {
+export default function PianoKeyboard({ compact, onCompact, showNotes, showShortcuts, ready, pressedNotes, onPress, onMove, onRelease, onMomentary, onStopAll }) {
   const viewport = useRef(null);
   const [octaves, setOctaves] = useState(2);
   const [rangeStart, setRangeStart] = useState(60);
-  const layout = createKeyLayout(rangeStart, octaves);
+  const [width, setWidth] = useState(0);
+  const layout = createKeyLayout(rangeStart, compact ? 1 : octaves, compact);
+  const fits = width >= layout.whiteCount * 44;
 
   useEffect(() => {
+    let previousWidth;
     const observer = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width > 0) {
-        const next = getOctavesForWidth(entry.contentRect.width);
-        if (next !== octaves) { onStopAll(); setOctaves(next); }
+        const nextWidth = entry.contentRect.width;
+        const next = compact ? 1 : getOctavesForWidth(nextWidth);
+        if (nextWidth !== previousWidth) onStopAll();
+        previousWidth = nextWidth;
+        if (next !== octaves) setOctaves(next);
+        setWidth(nextWidth);
       }
     });
     observer.observe(viewport.current);
     return () => observer.disconnect();
-  }, [octaves, onStopAll]);
+  }, [compact, octaves, onStopAll]);
 
   function keyDown(event) {
-    if (!ready || event.repeat || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (!ready || !fits || event.repeat || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.target.isContentEditable || event.target.closest('input, textarea, select, [role="dialog"]')) return;
     if (event.code === 'Space') {
       event.preventDefault();
@@ -52,7 +59,7 @@ export default function PianoKeyboard({ showNotes, showShortcuts, ready, pressed
   }
 
   function pointerDown(event) {
-    if (!ready || event.button !== 0) return;
+    if (!ready || !fits || event.button !== 0) return;
     const midi = noteAtPoint(event);
     if (midi === null) return;
     event.preventDefault();
@@ -75,12 +82,13 @@ export default function PianoKeyboard({ showNotes, showShortcuts, ready, pressed
     <>
       <div className="key-frame">
         <div
-          className="key-viewport" ref={viewport} tabIndex={0} role="group" aria-label="Piano keyboard"
+          className="key-viewport" ref={viewport} tabIndex={fits ? 0 : -1} role="group" aria-label="Piano keyboard"
           onKeyDown={keyDown} onPointerDown={pointerDown}
-          onPointerMove={(event) => { if (ready) onMove(`pointer:${event.pointerId}`, noteAtPoint(event)); }}
+          onPointerMove={(event) => { if (ready && fits) onMove(`pointer:${event.pointerId}`, noteAtPoint(event)); }}
           onPointerUp={pointerEnd} onPointerCancel={pointerEnd} onLostPointerCapture={(event) => onRelease(`pointer:${event.pointerId}`)}
         >
-          <div className="key-surface" style={{ minWidth: `${layout.whiteCount * 44}px` }}>
+          {!fits && <div className="keyboard-space-guide"><p>This window is too narrow for this key range.</p>{onCompact ? <button type="button" onClick={onCompact}>Use compact keyboard</button> : <p>Use a wider window or zoom out. Help and Recordings are still available.</p>}</div>}
+          <div className="key-surface" hidden={!fits}>
             {layout.keys.map((key) => (
               <button
                 key={key.midi}
@@ -106,12 +114,12 @@ export default function PianoKeyboard({ showNotes, showShortcuts, ready, pressed
         </div>
       </div>
       <div className="range-bar">
-        <button type="button" aria-label="Lower octave" disabled={layout.start === 21} onClick={() => changeRange(layout.start - 12)}>
+        <button type="button" aria-label="Lower octave" disabled={layout.start === 21 || !fits} onClick={() => changeRange(Math.ceil(layout.start / 12) * 12 - 12)}>
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5" /></svg>
           Lower octave
         </button>
         <output aria-label="Visible note range" aria-live="polite">{getNoteName(layout.start)}–{getNoteName(layout.end)}</output>
-        <button type="button" aria-label="Higher octave" disabled={layout.end === 108} onClick={() => changeRange(layout.start + 12)}>
+        <button type="button" aria-label="Higher octave" disabled={layout.end === 108 || !fits} onClick={() => changeRange(Math.floor(layout.start / 12) * 12 + 12)}>
           Higher octave
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>
         </button>

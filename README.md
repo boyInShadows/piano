@@ -2,9 +2,11 @@
 
 A browser piano based on a restrained polished-black acoustic instrument. V1 scope is free play, sustain, a metronome, and recording/replay saved in this browser. The owner name is fixed in V1.
 
-The piano is playable on `development`: sampled A0–C8 notes, physical-keyboard chords, mouse/pen/touch input, glissando, sustain, volume/mute, and Stop all. The selected polished-black shell includes adaptive note windows, range navigation, Help/Recordings views and label settings. Metronome, recording and full mobile orientation/fallback are still pending.
+The piano is playable on `development`: sampled A0–C8 notes, physical-keyboard chords, mouse/pen/touch input, glissando, sustain, volume/mute, and Stop all. The selected polished-black shell includes adaptive note windows, range navigation, Help/Recordings views and label settings. Narrow touch phones show rotation guidance with an optional compact keyboard; short landscape screens keep the playing controls beside the keys. Metronome and recording remain pending.
 
 Choose **Enable sound**, then click/touch the keys or focus the piano and use physical US-position shortcuts `A W S E D F T G Y H U J K O L P ;`. Hold Space for momentary sustain, use Latch sustain for a held pedal, and press Escape or Stop all to clear notes. Arrow keys move focus between piano keys; Enter auditions the focused note. Range changes, blur, hidden pages and audio interruptions clear ownership so old notes cannot restart automatically.
+
+Volume, mute and note/shortcut labels are in **Settings**. On a portrait phone, choose **Use compact keyboard** if you cannot rotate. It keeps seven white-key targets per ordinary octave and still reaches A0–C8. Landscape restores the larger range; returning to portrait remembers your choice until reload. If minimum key sizes cannot fit, the app explains how to make room and keeps Help/Recordings available. Layout changes and opening Settings release notes and both pedal states.
 
 ## Run and verify
 
@@ -23,7 +25,7 @@ npm run check
 npm run test:dev
 ```
 
-The browser tests use installed Microsoft Edge (Chromium). Skip the browser-install command if Edge is already installed, as on this PC. `check` runs lint, the production build, 18 unit tests, and 12 browser journeys. `test:unit` and `test:browser` run those suites separately; `test:dev` verifies the development server. Browser tests start and stop their own server on port 3217 and check SSR/hydration, settings/focus, note geometry, source ownership, native pointer capture, emulated touch/pen, activation/retry/resume, measured audio signal and all-register source dispatch. Reports and screenshots stay local under `docs/artifacts/playwright-report/` and `docs/artifacts/test-results/`. No additional browser was downloaded here. A different browser channel can be selected in `playwright.config.js` when expanding browser coverage.
+The browser tests use installed Microsoft Edge (Chromium). Skip the browser-install command if Edge is already installed, as on this PC. `check` runs lint, the production build, 19 unit tests, and 16 browser journeys. `test:unit` and `test:browser` run those suites separately; `test:dev` verifies the development server. Browser tests start and stop their own server on port 3217 and check SSR/hydration, settings/focus, note geometry, source ownership, native pointer capture, emulated touch/pen, activation/retry/resume, measured audio signal, all-register source dispatch, responsive key/control geometry, portrait fallback, repeated rotation and zoom/large-text guidance. Reports and screenshots stay local under `docs/artifacts/playwright-report/` and `docs/artifacts/test-results/`. No additional browser was downloaded here. A different browser channel can be selected in `playwright.config.js` when expanding browser coverage.
 
 For a production preview, run `npm run build` followed by `npm start`. This is a local preview, not a public deployment.
 

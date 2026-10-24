@@ -25,9 +25,9 @@ test('serves the selected piano shell and navigates without browser errors', asy
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Show note names' }).check();
-  await expect(page.getByRole('button', { name: 'C4', exact: true }).getByText('C4')).toBeVisible();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: 'Show note names' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'C4', exact: true }).getByText('C4')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('desktop.png'), fullPage: true });
 
   await page.setViewportSize({ width: 320, height: 568 });
