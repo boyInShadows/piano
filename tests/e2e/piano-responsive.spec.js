@@ -17,6 +17,8 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   await page.screenshot({ path: testInfo.outputPath('portrait-guide.png') });
   await page.getByRole('button', { name: 'Use compact keyboard' }).click();
   await expect(page.locator('.piano-key')).toHaveCount(12);
+  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: width === 320 ? 568 : 844 });
     await assertGeometry(page, { width, height: width === 320 ? 568 : 844 }, testInfo);
@@ -39,8 +41,6 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   await expect(page.locator('.piano-key')).toHaveCount(25);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('.piano-key')).toHaveCount(12);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(1);
@@ -78,6 +78,7 @@ test('rotation and shrinking space clear held notes and pedal without recreating
   await page.screenshot({ path: testInfo.outputPath('ready-landscape-568.png') });
   await page.setViewportSize({ width: 844, height: 390 });
   for (let rotation = 0; rotation < 3; rotation += 1) {
+    await page.getByRole('button', { name: 'Metronome', exact: true }).click();
     await page.getByRole('button', { name: 'Latch sustain' }).click();
     await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
     await page.keyboard.down('Space');
@@ -89,6 +90,7 @@ test('rotation and shrinking space clear held notes and pedal without recreating
     await page.keyboard.up('Space');
     await page.setViewportSize({ width: 844, height: 390 });
     await expect(page.getByRole('button', { name: 'Latch sustain' })).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('button', { name: 'Metronome', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
   }
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(1);
@@ -140,7 +142,7 @@ async function assertGeometry(page, viewport, testInfo) {
       const { x, y, width, height, right, bottom } = node.getBoundingClientRect();
       return { x, y, width, height, right, bottom };
     });
-    return { white: boxes('.piano-key--white'), black: boxes('.piano-key--black'), controls: boxes('.app-bar button, .range-bar button, .audio-controls button'), overflow: document.documentElement.scrollWidth > innerWidth };
+    return { white: boxes('.piano-key--white'), black: boxes('.piano-key--black'), controls: boxes('.app-bar button, .range-bar button, .audio-controls button, .audio-controls input'), overflow: document.documentElement.scrollWidth > innerWidth };
   });
   expect(measured.overflow).toBe(false);
   for (const box of measured.white) {

@@ -16,6 +16,15 @@
 [hidden] {
   display: none !important;
 }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 body {
   margin: 0;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -285,6 +294,30 @@ svg {
 .audio-controls button {
   border-color: #c6c4bd;
 }
+.metronome-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.metronome-button {
+  display: grid;
+  gap: 2px;
+  min-width: 120px;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+.metronome-beats {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  line-height: 1;
+}
+.metronome-beats > span { width: 16px; padding: 2px; border-radius: 2px; }
+.metronome-beats .is-current { color: var(--surface); background: var(--ink); }
+.tempo-control { display: grid; justify-items: center; font-size: 0.75rem; line-height: 1.2; }
+.settings-panel label { flex-wrap: wrap; }
 input[type="range"] {
   width: 112px;
   min-height: 44px;
@@ -399,6 +432,8 @@ progress {
   }
   .audio-controls p { flex: 0; font-size: 0.75rem; line-height: 1.5; }
   .audio-controls button { padding: 8px; }
+  .metronome-control { display: grid; gap: 4px; }
+  .audio-controls .metronome-button { padding: 4px 8px; }
   .preview-status, .pedal-status { display: none; }
 }
 
@@ -423,10 +458,10 @@ progress {
   .is-compact .piano-lid { height: 8px; }
   .is-compact .fallboard { min-height: 48px; padding: 8px; }
   .is-compact .key-frame { padding: 8px 0 0; }
-  .is-compact .key-surface { height: clamp(150px, 30dvh, 220px); }
+  .is-compact .key-surface { height: clamp(150px, 28dvh, 220px); }
   .is-compact .range-bar { margin: 0; padding: 4px 0; }
   .is-compact .front-rail { height: 12px; }
-  .is-compact .audio-controls { margin: 12px 4px 0; gap: 8px; }
+  .is-compact .audio-controls { margin: 8px 4px 0; gap: 4px; }
   .is-compact .audio-controls p { flex-basis: 100px; }
   .is-compact .pedal-status, .is-compact .preview-status { display: none; }
 }

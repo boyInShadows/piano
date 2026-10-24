@@ -8,6 +8,7 @@ import { usePianoViewport } from '../hooks/usePianoViewport';
 import soundbank from '../../public/audio/piano/salamander-v1/manifest.json';
 import PianoKeyboard from './PianoKeyboard';
 import PianoSpaceGuide from './PianoSpaceGuide';
+import MetronomeControl from './MetronomeControl';
 
 export default function PianoApp() {
   const [view, setView] = useState('Play');
@@ -17,6 +18,8 @@ export default function PianoApp() {
   const [audio, setAudio] = useState({ status: 'not-enabled', loaded: 0 });
   const [volume, setVolume] = useState(35);
   const [muted, setMuted] = useState(false);
+  const [bpm, setBpm] = useState(90);
+  const metronome = audio.metronome ?? { running: false, beat: 0 };
   const engine = useRef(null);
   const input = usePianoInput(engine);
   const playArea = useRef(null);
@@ -132,6 +135,12 @@ export default function PianoApp() {
                 {{ 'not-enabled': 'Enable sound to load the grand piano.', loading: 'Loading piano', ready: 'Sound ready', failed: 'Sound could not load. Retry, or use a browser with Web Audio support.', suspended: 'Sound interrupted. Resume when you are ready.' }[audio.status]}
               </p>
               {audio.status === 'loading' && <progress aria-label="Piano samples loaded" value={audio.loaded} max={soundbank.samples.length} />}
+              {audio.status === 'ready' && <MetronomeControl running={metronome.running} beat={metronome.beat} bpm={bpm}
+                onToggle={() => {
+                  if (metronome.running) engine.current.stopMetronome();
+                  else engine.current.startMetronome(bpm);
+                }}
+                onTempo={(value) => { setBpm(value); engine.current.setTempo(value); }} />}
               {audio.status === 'ready' && <button type="button" aria-label="Latch sustain" aria-pressed={input.latched} onClick={() => input.setLatched(!input.latched)}>{input.sustain ? 'Sustain on' : 'Sustain off'}</button>}
               <span className="pedal-status">{input.sustain ? 'Pedal on' : 'Pedal off'}</span>
               <button type="button" onClick={input.stopAll}>Stop all</button>
@@ -154,6 +163,7 @@ export default function PianoApp() {
         <p>Open Settings to show note names or US-position keyboard shortcuts.</p>
         <p>Enable sound, then click or touch keys. Drag across the keyboard to slide between notes. Focus the piano to use physical US-position shortcuts, or use the arrow keys and hold Enter to audition a note.</p>
         <p>Space is a momentary pedal while the piano has focus. Latch sustain keeps the pedal down until switched off. Stop all or Escape clears notes and both pedal states. Leaving the page, changing range, or losing focus also releases notes.</p>
+        <p>After enabling sound, switch Metronome on and adjust Tempo from 40 to 240 BPM. The four numbers mark the beat; beat one has a higher click. Mute silences the piano and click while the beat keeps running. Stop all, navigation, Settings or an interruption stops the metronome; it does not restart automatically.</p>
         <p>On a small screen, turn your phone sideways for larger keys. If rotation is locked, choose Use compact keyboard on the Play screen. This choice lasts until you reload; landscape automatically restores the larger range. If keys cannot fit, close Settings, zoom out or use a wider window.</p>
         <p>Enable sound to load the grand piano. Recording is being prepared.</p>
         <p>Sound: <a href={soundbank.sourceUrl}>{soundbank.title}</a> by {soundbank.author}, licensed under <a href={soundbank.licenseUrl}>{soundbank.license}</a>. The web bank selects 16 samples and caps long tails at 12 seconds with a short fade.</p>
