@@ -51,7 +51,13 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
 
   function stopAll() {
     sustain = false;
-    for (const voice of voices.values()) releaseVoice(voice, 0.005);
+    for (const voice of voices.values()) {
+      if (nativeContext.state === 'running') releaseVoice(voice, 0.005);
+      else {
+        voice.source.stop(nativeContext.currentTime);
+        finish(voice);
+      }
+    }
   }
 
   function handleStateChange() {
@@ -177,12 +183,12 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
   function setVolume(value) {
     if (!Number.isFinite(value) || value < 0 || value > 1) throw new RangeError('Volume must be between 0 and 1.');
     volume = value;
-    master?.gain.rampTo(muted ? 0 : volume, 0.02);
+    master?.gain.rampTo(muted ? 0 : volume, 0.02, nativeContext.currentTime);
   }
 
   function setMuted(value) {
     muted = Boolean(value);
-    master?.gain.rampTo(muted ? 0 : volume, 0.02);
+    master?.gain.rampTo(muted ? 0 : volume, 0.02, nativeContext.currentTime);
   }
 
   function dispose() {

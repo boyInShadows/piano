@@ -9,6 +9,7 @@ function setup() {
   const sources = [];
   const requests = [];
   const states = [];
+  const ramps = [];
   class NativeContext extends EventTarget {
     constructor() { super(); this.state = 'suspended'; this.currentTime = 10; contexts.push(this); }
     async resume() { this.state = 'running'; }
@@ -23,7 +24,7 @@ function setup() {
     dispose() { this.raw.close(); }
   }
   class Node {
-    constructor() { this.input = {}; this.gain = { rampTo() {}, cancelAndHoldAtTime() {}, setValueAtTime() {}, linearRampToValueAtTime() {} }; }
+    constructor() { this.input = {}; this.gain = { rampTo: (...args) => ramps.push(args), cancelAndHoldAtTime() {}, setValueAtTime() {}, linearRampToValueAtTime() {} }; }
     connect() { return this; }
     dispose() { this.disposed = true; }
     disconnect() { this.disposed = true; }
@@ -40,7 +41,7 @@ function setup() {
   };
   const loadTone = async () => ({ Context, Gain: Node, Limiter: Node, ToneBufferSource: Voice, setContext() {} });
   const engine = createAudioEngine((state) => states.push(state), loadTone);
-  return { engine, contexts, sources, requests, states, loadTone,
+  return { engine, contexts, sources, requests, states, ramps, loadTone,
     cleanup() { engine.dispose(); globalThis.AudioContext = previousContext; globalThis.fetch = previousFetch; } };
 }
 
@@ -64,13 +65,28 @@ test('activation is lazy, coalesces clicks and dispatches at the immediate audio
 test('failed loads abort remaining requests and retry using the same context', async () => {
   const fixture = setup();
   try {
-    globalThis.fetch = async () => ({ ok: false, status: 503 });
+    const signals = [];
+    globalThis.fetch = async (url, { signal }) => { signals.push(signal); return { ok: false, status: 503 }; };
     assert.equal(await fixture.engine.enable(), false);
     assert.equal(fixture.states.at(-1).status, 'failed');
+    assert.ok(signals.length > 0 && signals.every((signal) => signal.aborted));
     globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) });
     assert.equal(await fixture.engine.enable(), true);
     assert.equal(fixture.contexts.length, 1);
     assert.equal(fixture.states.at(-1).status, 'ready');
+  } finally { fixture.cleanup(); }
+});
+
+test('volume and mute ramp at the immediate clock time and preserve the chosen level', async () => {
+  const fixture = setup();
+  try {
+    await fixture.engine.enable();
+    fixture.engine.setVolume(0.6);
+    fixture.engine.setMuted(true);
+    fixture.engine.setVolume(0.4);
+    fixture.engine.setMuted(false);
+    assert.deepEqual(fixture.ramps, [[0.6, 0.02, 10], [0, 0.02, 10], [0, 0.02, 10], [0.4, 0.02, 10]]);
+    for (const value of [-1, 1.1, NaN, Infinity]) assert.throws(() => fixture.engine.setVolume(value), RangeError);
   } finally { fixture.cleanup(); }
 });
 
@@ -120,5 +136,21 @@ test('caps voices at 64, protects held notes, and evicts the oldest unheld voice
     assert.equal(fixture.engine.attack(85), true);
     assert.equal(fixture.sources[0].stopTime, 10.005);
     assert.equal(fixture.sources.at(-1).startArgs[0], 10.005);
+  } finally { fixture.cleanup(); }
+});
+
+test('suspension disconnects voices immediately so resume cannot revive an old held note', async () => {
+  const fixture = setup();
+  try {
+    await fixture.engine.enable();
+    fixture.engine.attack(60);
+    fixture.contexts[0].state = 'suspended';
+    fixture.contexts[0].dispatchEvent(new Event('statechange'));
+    assert.equal(fixture.sources[0].stopTime, 10);
+    assert.equal(fixture.sources[0].disposed, true);
+    assert.equal(fixture.states.at(-1).status, 'suspended');
+    await fixture.engine.enable();
+    assert.equal(fixture.sources.length, 1);
+    assert.equal(fixture.contexts.length, 1);
   } finally { fixture.cleanup(); }
 });

@@ -14,9 +14,9 @@ test('serves the selected piano shell and navigates without browser errors', asy
   await expect(page).toHaveTitle("Qazal's Piano");
   await expect(page.getByRole('heading', { name: "Qazal's Piano", exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'C4', exact: true })).toBeVisible();
-  await page.getByRole('group', { name: 'Piano keyboard preview' }).focus();
-  await expect(page.getByRole('group', { name: 'Piano keyboard preview' })).toBeFocused();
-  await expect(page.getByRole('group', { name: 'Piano keyboard preview' })).toHaveCSS('outline-color', 'rgb(248, 245, 235)');
+  await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
+  await expect(page.getByRole('group', { name: 'Piano keyboard', exact: true })).toBeFocused();
+  await expect(page.getByRole('group', { name: 'Piano keyboard', exact: true })).toHaveCSS('outline-color', 'rgb(248, 245, 235)');
   await page.screenshot({ path: testInfo.outputPath('desktop-clean.png'), fullPage: true });
   await page.getByRole('button', { name: 'Recordings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your recordings' })).toBeVisible();

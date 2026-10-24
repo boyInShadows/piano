@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PIANO_TITLE } from '../lib/pianoConfig';
 import { createAudioEngine } from '../lib/audioEngine';
+import { usePianoInput } from '../hooks/usePianoInput';
 import soundbank from '../../public/audio/piano/salamander-v1/manifest.json';
 import PianoKeyboard from './PianoKeyboard';
 
@@ -15,6 +16,7 @@ export default function PianoApp() {
   const [volume, setVolume] = useState(35);
   const [muted, setMuted] = useState(false);
   const engine = useRef(null);
+  const input = usePianoInput(engine);
 
   useEffect(() => () => {
     engine.current?.dispose();
@@ -23,7 +25,10 @@ export default function PianoApp() {
 
   function enableSound() {
     if (!engine.current) {
-      engine.current = createAudioEngine(setAudio);
+      engine.current = createAudioEngine((next) => {
+        if (next.status === 'failed' || next.status === 'suspended') input.stopAll();
+        setAudio(next);
+      });
       engine.current.setVolume(volume / 100);
       engine.current.setMuted(muted);
     }
@@ -41,6 +46,7 @@ export default function PianoApp() {
               type="button"
               aria-current={view === label ? 'page' : undefined}
               onClick={() => {
+                input.stopAll();
                 setView(label);
                 setSettingsOpen(false);
               }}
@@ -77,7 +83,12 @@ export default function PianoApp() {
         <div className="piano-cabinet">
           <div className="piano-lid" aria-hidden="true" />
           <div className="fallboard"><h1>{PIANO_TITLE}</h1></div>
-          <PianoKeyboard showNotes={showNotes} showShortcuts={showShortcuts} />
+          <PianoKeyboard
+            showNotes={showNotes} showShortcuts={showShortcuts}
+            ready={audio.status === 'ready'} pressedNotes={input.notes}
+            onPress={input.press} onMove={input.move} onRelease={input.release}
+            onMomentary={input.setMomentary} onStopAll={input.stopAll}
+          />
           <div className="front-rail" aria-hidden="true" />
         </div>
         <div className="audio-controls">
@@ -101,9 +112,11 @@ export default function PianoApp() {
             setMuted(!muted);
             engine.current?.setMuted(!muted);
           }}>{muted ? 'Unmute' : 'Mute'}</button>
-          <button type="button" onClick={() => engine.current?.stopAll()}>Stop all</button>
+          <button type="button" aria-pressed={input.latched} disabled={audio.status !== 'ready'} onClick={() => input.setLatched(!input.latched)}>Latch sustain</button>
+          <span className="pedal-status">{input.sustain ? 'Pedal on' : 'Pedal off'}</span>
+          <button type="button" onClick={input.stopAll}>Stop all</button>
         </div>
-        <p className="preview-status">Keyboard input and recording are being prepared.</p>
+        <p className="preview-status">Click the keys or focus the piano and use A W S E D F T G Y H U J K. Hold Space for sustain. Escape stops all notes.</p>
       </section>
 
       <section className="content-panel" hidden={view !== 'Recordings'} aria-labelledby="recordings-title">
@@ -117,6 +130,8 @@ export default function PianoApp() {
         <h2 id="help-title">Playing {PIANO_TITLE}</h2>
         <p>Use Lower octave and Higher octave to explore the piano from A0 to C8.</p>
         <p>Open Settings to show note names or US-position keyboard shortcuts.</p>
+        <p>Enable sound, then click or touch keys. Drag across the keyboard to slide between notes. Focus the piano to use physical US-position shortcuts, or use the arrow keys and hold Enter to audition a note.</p>
+        <p>Space is a momentary pedal while the piano has focus. Latch sustain keeps the pedal down until switched off. Stop all or Escape clears notes and both pedal states. Leaving the page, changing range, or losing focus also releases notes.</p>
         <p>On a small screen, turn your phone sideways for more room. You can scroll the keyboard in a narrow window.</p>
         <p>Enable sound to load the grand piano. Recording is being prepared.</p>
         <p>Sound: <a href={soundbank.sourceUrl}>{soundbank.title}</a> by {soundbank.author}, licensed under <a href={soundbank.licenseUrl}>{soundbank.license}</a>. The web bank selects 16 samples and caps long tails at 12 seconds with a short fade.</p>

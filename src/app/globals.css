@@ -56,7 +56,7 @@ button {
   font: inherit;
   cursor: pointer;
 }
-button:hover:not(:disabled) {
+button:not(.piano-key):hover:not(:disabled) {
   background: #e7e5df;
 }
 button[aria-current="page"] {
@@ -153,6 +153,8 @@ h1 {
   scrollbar-color: #79776f #151617;
 }
 .key-surface {
+  touch-action: none;
+  user-select: none;
   position: relative;
   height: clamp(150px, 29vh, 264px);
   border-top: 5px solid var(--felt);
@@ -180,6 +182,18 @@ h1 {
   background: linear-gradient(90deg, #030405, #252729 20%, #121315 80%, #030405);
   box-shadow: inset 0 -7px 1px #070809, 0 4px 3px #0007;
   color: #eeebe3;
+}
+.piano-key--white:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -3px;
+}
+.piano-key--black:focus-visible {
+  outline: 2px solid var(--ivory);
+  outline-offset: -3px;
+}
+.pedal-status {
+  font-size: 0.875rem;
+  color: var(--muted);
 }
 .piano-key[aria-pressed="true"] {
   transform: translateY(2px);
