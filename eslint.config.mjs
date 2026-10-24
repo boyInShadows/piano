@@ -8,10 +8,7 @@ export default defineConfig([
     'out/**',
     '.agents/**',
     '.claude/**',
-    'graphify-out/**',
-    'artifacts/**',
-    'playwright-report/**',
-    'test-results/**',
-    'design-concepts/**',
+    'docs/artifacts/**',
+    'docs/design-concepts/**',
   ]),
 ]);

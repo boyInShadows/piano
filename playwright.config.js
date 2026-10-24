@@ -1,11 +1,12 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
+  outputDir: './docs/artifacts/test-results',
   fullyParallel: true,
   forbidOnly: true,
   retries: 0,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['list'], ['html', { open: 'never', outputFolder: 'docs/artifacts/playwright-report' }]],
   use: {
     baseURL: 'http://127.0.0.1:3100',
     browserName: 'chromium',

@@ -21,7 +21,7 @@ npm run check
 npm run test:dev
 ```
 
-The browser tests use installed Microsoft Edge (Chromium). Skip the browser-install command if Edge is already installed, as on this PC. `check` runs lint, the production build, and the browser smoke test. `test:dev` verifies the development server separately. The test starts and stops its own server on port 3100 and checks server-rendered content, client interaction, console errors, and narrow-screen overflow. Reports and screenshots stay local under `playwright-report/` and `test-results/`. No additional browser was downloaded here. A different browser channel can be selected in `playwright.config.js` when expanding browser coverage.
+The browser tests use installed Microsoft Edge (Chromium). Skip the browser-install command if Edge is already installed, as on this PC. `check` runs lint, the production build, and the browser smoke test. `test:dev` verifies the development server separately. The test starts and stops its own server on port 3100 and checks server-rendered content, client interaction, console errors, and narrow-screen overflow. Reports and screenshots stay local under `docs/artifacts/playwright-report/` and `docs/artifacts/test-results/`. No additional browser was downloaded here. A different browser channel can be selected in `playwright.config.js` when expanding browser coverage.
 
 For a production preview, run `npm run build` followed by `npm start`. This is a local preview, not a public deployment.
 
@@ -33,14 +33,25 @@ The foundation follows the official [Next installation](https://nextjs.org/docs/
 - Keep code readable and focused. Reuse existing code, use clear names, separate browser audio/input/storage from presentation, and avoid speculative abstractions or dependencies.
 - Add meaningful checks for nontrivial behavior and run the checks relevant to each task.
 - Commit each verified task on `development`; push `development` at each completed phase. The initial repository setup lives on `main`. Merge to `main` only when requested.
-- Update the local `changeLogs.md` and `pending.md` after every task, including evidence and unresolved issues.
+- Update the local `docs/changeLogs.md` and `docs/pending.md` after every task, including evidence and unresolved issues.
+- Keep the root focused: documentation/research in `docs/`, tests in `tests/`, generated evidence in `docs/artifacts/`, and application code under `src/` by responsibility.
 - Only this root README is tracked among Markdown files. Project instructions, planning documents, task logs, design concepts, generated graphs, and machine-specific skill links stay local.
 
 ## Local project context
 
-The local `masterPlan.md` and `astraTasks.md` contain Astra's specification and acceptance criteria. `pending.md` tracks execution; `AGENTS.md` contains persistent project rules. Shared tools from `D:\coding\Tools` are linked for Codex and Claude through `D:\tools\agents-shared\skills`.
+```text
+src/app/             Routes, root layout, global styles and app icon
+src/components/      Interface components
+src/lib/             Piano configuration and shared logic
+tests/e2e/           Browser journeys
+docs/                Local plans, task logs and product/design context
+docs/design-concepts/ Local visual research
+docs/artifacts/      Local logs, screenshots, browser reports and graphs
+```
 
-codebase-memory indexes the project for structural lookup. A small source-only Graphify graph is kept in local `graphify-out/` with JSON, HTML, report, and health evidence. Its initial AST graph has one unresolved stylesheet import because CSS is outside extraction coverage; inspect CSS directly. Ignored local plans and task logs must be backed up separately because Git does not include them.
+The local `docs/masterPlan.md` and `docs/astraTasks.md` contain Astra's specification and acceptance criteria. `docs/pending.md` tracks execution; `AGENTS.md` contains persistent project rules. Shared tools from `D:\coding\Tools` are linked for Codex and Claude through `D:\tools\agents-shared\skills`. Root agent instructions and tool configuration stay where their runtimes discover them.
+
+codebase-memory indexes the project for structural lookup. The initial source-only Graphify snapshot is kept in local `docs/artifacts/graphify/` with JSON, HTML, report, and health evidence. Its AST graph has one unresolved stylesheet import because CSS is outside extraction coverage; inspect CSS directly. Ignored local plans and task logs must be backed up separately because Git does not include them. The file-move inventory is `docs/artifacts/structure-move-inventory.json`.
 
 Working defaults are a landscape-first phone keyboard with an accessible compact fallback, an adaptive desktop note range, English copy, one licensed grand-piano sound, and local recordings. Accounts, cloud sync, downloadable audio, lessons, MIDI, and name editing are deferred.
 
