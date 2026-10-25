@@ -33,6 +33,18 @@ The browser tests use installed Microsoft Edge (Chromium). Skip the browser-inst
 
 For a production preview, run `npm run build` followed by `npm start`. This is a local preview, not a public deployment.
 
+### Production deployment handoff
+
+Use a normal HTTPS-capable Node host with Node 24 LTS and the committed `package-lock.json`:
+
+```sh
+npm ci
+npm run build
+npm start -- --hostname 0.0.0.0 --port 3000
+```
+
+Put the Next server behind the host's HTTPS reverse proxy. V1 needs no environment variables or separate backend. Preserve the same browser origin for IndexedDB recordings and local preferences, serve `/audio/piano/salamander-v1/` unchanged, and verify metadata, sample paths/cache headers, first sound activation, storage, errors and responsive layout on the chosen host. No public host, domain or deployment credentials are selected or authorized yet.
+
 The foundation follows the official [Next installation](https://nextjs.org/docs/app/getting-started/installation) and [server/client boundary](https://nextjs.org/docs/app/getting-started/server-and-client-components) guidance, including the guides bundled with the installed Next package. The intended browser baseline is Chrome/Edge 111+, Firefox 111+, and Safari 16.4+; automated runtime verification currently uses local Edge. Physical iPhone/Android, physical pen, Chrome/Firefox/Safari, speaker/headphone quality and output-latency checks remain open. Emulated pointers and a nonzero browser audio signal do not prove physical-device quality or responsiveness. Physical mobile orientation acceptance remains pending.
 
 ## Piano sound
