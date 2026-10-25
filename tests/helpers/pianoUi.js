@@ -17,6 +17,12 @@ export async function closeSettings(page) {
   }
 }
 
+export async function enableSound(page) {
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await closeSettings(page);
+}
+
 export async function goTo(page, name) {
   if (name === 'Play') return closeSettings(page);
   await openSettings(page);

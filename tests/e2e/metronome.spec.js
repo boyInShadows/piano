@@ -1,4 +1,4 @@
-import { openSettings, closeSettings, goTo, clickControl, fillTempo } from '../helpers/pianoUi.js';
+import { openSettings, closeSettings, goTo, clickControl, fillTempo, enableSound } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -37,7 +37,7 @@ test.beforeEach(async ({ page }) => {
 
 async function ready(page) {
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
 }
 

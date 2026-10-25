@@ -5,6 +5,7 @@ import { createKeyLayout, getNoteName, getOctavesForWidth, getShortcutLabel, get
 
 export default function PianoKeyboard({ compact, onCompact, showNotes, showShortcuts, ready, disabled = false, pressedNotes, onPress, onMove, onRelease, onMomentary, onStopAll }) {
   const viewport = useRef(null);
+  const previousWidth = useRef(null);
   const [octaves, setOctaves] = useState(2);
   const [rangeStart, setRangeStart] = useState(60);
   const [width, setWidth] = useState(0);
@@ -12,13 +13,12 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
   const fits = width >= layout.whiteCount * 44;
 
   useEffect(() => {
-    let previousWidth;
     const observer = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width > 0) {
         const nextWidth = entry.contentRect.width;
         const next = compact ? 1 : getOctavesForWidth(nextWidth);
-        if (nextWidth !== previousWidth) onStopAll();
-        previousWidth = nextWidth;
+        if (nextWidth !== previousWidth.current) onStopAll();
+        previousWidth.current = nextWidth;
         if (next !== octaves) setOctaves(next);
         setWidth(nextWidth);
       }
@@ -28,7 +28,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
   }, [compact, octaves, onStopAll]);
 
   function keyDown(event) {
-    if (!ready || !fits || event.repeat || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (!fits || event.repeat || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.target.isContentEditable || event.target.closest('input, textarea, select, [role="dialog"]')) return;
     if (event.code === 'Escape') {
       event.preventDefault();
@@ -38,7 +38,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
     if (disabled) return;
     if (event.code === 'Space') {
       event.preventDefault();
-      onMomentary(true);
+      if (ready) onMomentary(true);
       return;
     }
     const focused = Number(event.target.closest('[data-midi]')?.dataset.midi ?? layout.start);
@@ -60,7 +60,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
   }
 
   function pointerDown(event) {
-    if (!ready || disabled || !fits || event.button !== 0) return;
+    if (disabled || !fits || event.button !== 0) return;
     const midi = noteAtPoint(event);
     if (midi === null) return;
     event.preventDefault();
@@ -84,8 +84,9 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
       <div className="key-frame">
         <div
           className="key-viewport" ref={viewport} tabIndex={fits ? 0 : -1} role="group" aria-label="Piano keyboard"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
           onKeyDown={keyDown} onPointerDown={pointerDown}
-          onPointerMove={(event) => { if (ready && !disabled && fits) onMove(`pointer:${event.pointerId}`, noteAtPoint(event)); }}
+          onPointerMove={(event) => { if (!disabled && fits) onMove(`pointer:${event.pointerId}`, noteAtPoint(event)); }}
           onPointerUp={pointerEnd} onPointerCancel={pointerEnd} onLostPointerCapture={(event) => onRelease(`pointer:${event.pointerId}`)}
         >
           {!fits && <div className="keyboard-space-guide"><p>This window is too narrow for this key range.</p>{onCompact ? <button type="button" onClick={onCompact}>Use compact keyboard</button> : <p>Use a wider window or zoom out. Help and Recordings are still available.</p>}</div>}
@@ -97,7 +98,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
                 className={`piano-key piano-key--${key.accidental ? 'black' : 'white'}`}
                 data-midi={key.midi}
                 aria-label={key.name}
-                disabled={!ready || disabled}
+                disabled={disabled}
                 tabIndex={-1}
                 aria-pressed={pressedNotes.has(key.midi)}
                 style={{

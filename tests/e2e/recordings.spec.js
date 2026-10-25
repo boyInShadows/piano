@@ -1,4 +1,4 @@
-import { closeSettings, goTo, clickControl } from '../helpers/pianoUi.js';
+import { closeSettings, goTo, clickControl, enableSound } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 async function recordDraft(page) {
@@ -17,7 +17,7 @@ async function recordDraft(page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
 });
 
@@ -30,7 +30,7 @@ test('saves a draft, reloads the library, replays it, and deletes it with confir
 
   await page.reload();
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   await goTo(page, 'Recordings');
   await expect(page.locator('.recording-item')).toContainText('Take 1');

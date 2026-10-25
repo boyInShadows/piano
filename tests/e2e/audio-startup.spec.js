@@ -1,4 +1,4 @@
-import { closeSettings } from '../helpers/pianoUi.js';
+import { closeSettings, enableSound } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -23,7 +23,7 @@ test('loads samples only after a gesture and resumes a single context', async ({
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(0);
   expect(samples).toHaveLength(0);
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   expect(samples).toHaveLength(16);
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(1);
@@ -44,7 +44,7 @@ test('failed sample load can be retried without another context or stale readine
   await page.route('**/A0.mp3', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
   await page.goto('/');
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('button', { name: 'Retry sound' })).toBeVisible();
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(1);
   await page.unroute('**/A0.mp3');

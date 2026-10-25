@@ -1,4 +1,4 @@
-import { closeSettings, clickControl } from '../helpers/pianoUi.js';
+import { closeSettings, clickControl, enableSound } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 
@@ -38,7 +38,7 @@ test('records a desktop audio and interaction stability baseline', async ({ page
 
   await page.goto('/');
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
   await closeSettings(page);

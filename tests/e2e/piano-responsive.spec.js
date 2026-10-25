@@ -1,4 +1,4 @@
-import { toggleSettings, closeSettings, goTo, clickControl } from '../helpers/pianoUi.js';
+import { toggleSettings, closeSettings, goTo, clickControl, enableSound } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 
@@ -19,7 +19,7 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   await page.getByRole('button', { name: 'Use compact keyboard' }).click();
   await expect(page.locator('.piano-key')).toHaveCount(12);
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: width === 320 ? 568 : 844 });
@@ -60,7 +60,7 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
 test('landscape and tablet geometry retains usable keys and controls', async ({ page }, testInfo) => {
   await page.goto('/');
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   for (const [width, height] of [[568, 320], [667, 375], [844, 390], [768, 1024], [1024, 768], [1280, 720], [1440, 900]]) {
     await page.setViewportSize({ width, height });
@@ -72,9 +72,9 @@ test('landscape and tablet geometry retains usable keys and controls', async ({ 
 test('phone browser bars leave room for playable landscape keys and rotation recovery', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 838, height: 286 });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Enable sound', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'C4', exact: true })).toBeEnabled();
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   await assertGeometry(page, { width: 838, height: 286 }, testInfo);
   await clickControl(page, 'Record');
@@ -101,7 +101,7 @@ test('rotation and shrinking space clear held notes and pedal without recreating
   });
   await page.goto('/');
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   await page.setViewportSize({ width: 568, height: 320 });
   await assertGeometry(page, { width: 568, height: 320 }, testInfo);

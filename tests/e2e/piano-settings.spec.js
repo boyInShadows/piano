@@ -1,7 +1,7 @@
-import { closeSettings, openSettings, clickControl } from '../helpers/pianoUi.js';
+import { closeSettings, openSettings, clickControl, enableSound } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
-test('sound activation and recovery stay inside the fallboard at desktop and short landscape sizes', async ({ page }) => {
+test('initial activation stays in Settings and recovery stays in the fallboard', async ({ page }) => {
   await page.route('**/audio/piano/**/*.mp3', (route) => route.abort());
   for (const viewport of [{ width: 1440, height: 900 }, { width: 838, height: 286 }]) {
     await page.setViewportSize(viewport);
@@ -14,8 +14,8 @@ test('sound activation and recovery stay inside the fallboard at desktop and sho
       expect(button.x).toBeGreaterThanOrEqual(cabinet.x);
       expect(button.x + button.width).toBeLessThanOrEqual(cabinet.x + cabinet.width);
     };
-    await checkPlacement('Enable sound');
-    await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+    await expect(page.locator('.sound-activation')).toHaveCount(0);
+    await enableSound(page);
     await expect(page.getByRole('button', { name: 'Retry sound', exact: true })).toBeVisible();
     await expect(page.getByText('Sound could not start. Try again.', { exact: true })).toBeVisible();
     await checkPlacement('Retry sound');
@@ -42,7 +42,7 @@ test('ready instrument fills the page while secondary controls stay behind the g
   await page.setViewportSize({ width: 838, height: 286 });
   await page.goto('/');
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   await expect(page.getByRole('navigation')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Metronome', exact: true })).toHaveCount(0);
@@ -69,7 +69,7 @@ test('Settings gear opens an overlay without resizing the keyboard and restores 
 
 test('controls remain usable during metronome and recording, and outside tap dismisses the panel', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   await clickControl(page, 'Metronome');
   await closeSettings(page);

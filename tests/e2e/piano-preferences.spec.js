@@ -1,4 +1,4 @@
-import { toggleSettings, closeSettings, clickControl, fillTempo } from '../helpers/pianoUi.js';
+import { toggleSettings, closeSettings, clickControl, fillTempo, enableSound } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { PREFERENCES_KEY } from '../../src/lib/pianoPreferences.js';
 
@@ -29,7 +29,7 @@ test('reload restores only preferences and keeps audio, transport, sustain and p
   expect(saved).toEqual({ version: 1, volume: 68, showNotes: true, showShortcuts: true, bpm: 131 });
   await page.reload();
   await page.keyboard.up('a');
-  await expect(page.getByRole('button', { name: 'Enable sound', exact: true })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Play a key to start' })).toBeVisible();
   expect(await page.evaluate(() => window.contextsCreated)).toBe(0);
   await toggleSettings(page);
   await expect(page.getByRole('slider', { name: 'Volume', exact: true })).toHaveValue('68');
@@ -117,6 +117,6 @@ test('settings remain reachable on portrait, short landscape and enlarged text l
 
 async function enable(page) {
   await closeSettings(page);
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
 }

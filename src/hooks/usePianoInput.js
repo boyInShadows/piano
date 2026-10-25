@@ -3,9 +3,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createNoteController } from '../lib/pianoInput';
 
-export function usePianoInput(engine, onEvent = () => {}, onInterruption = () => {}) {
+export function usePianoInput(engine, onEvent = () => {}, onInterruption = () => {}, { ready = true, activate } = {}) {
   const controller = useRef(null);
+  const pending = useRef(new Map());
   const [state, setState] = useState({ notes: new Set(), latched: false, sustain: false });
+  const release = useCallback((source) => {
+    pending.current.delete(source);
+    controller.current?.release(source);
+  }, []);
+  const stopAll = useCallback(() => {
+    pending.current.clear();
+    controller.current?.stopAll();
+  }, []);
+  const playPending = useCallback((source, note) => {
+    if (pending.current.get(source) !== note || !note.ready || note.midi === null) return;
+    pending.current.delete(source);
+    controller.current?.press(source, note.midi);
+  }, []);
 
   useEffect(() => {
     controller.current = createNoteController({
@@ -15,11 +29,11 @@ export function usePianoInput(engine, onEvent = () => {}, onInterruption = () =>
       stopAll: () => engine.current?.stopAll(),
     }, setState, onEvent);
     const keyUp = (event) => {
-      controller.current.release(`key:${event.code}`);
+      release(`key:${event.code}`);
       if (event.code === 'Space') controller.current.setMomentary(false);
     };
-    const blur = () => { onInterruption(); controller.current.stopAll(); };
-    const visibility = () => { if (document.hidden) { onInterruption(); controller.current.stopAll(); } };
+    const blur = () => { onInterruption(); stopAll(); };
+    const visibility = () => { if (document.hidden) { onInterruption(); stopAll(); } };
     window.addEventListener('keyup', keyUp);
     window.addEventListener('blur', blur);
     document.addEventListener('visibilitychange', visibility);
@@ -27,15 +41,34 @@ export function usePianoInput(engine, onEvent = () => {}, onInterruption = () =>
       window.removeEventListener('keyup', keyUp);
       window.removeEventListener('blur', blur);
       document.removeEventListener('visibilitychange', visibility);
-      controller.current.stopAll();
+      stopAll();
     };
-  }, [engine, onEvent, onInterruption]);
+  }, [engine, onEvent, onInterruption, release, stopAll]);
 
-  const press = useCallback((source, midi) => controller.current?.press(source, midi), []);
-  const move = useCallback((source, midi) => controller.current?.move(source, midi), []);
-  const release = useCallback((source) => controller.current?.release(source), []);
-  const stopAll = useCallback(() => controller.current?.stopAll(), []);
-  const releaseHeld = useCallback(() => controller.current?.releaseHeld(), []);
+  const press = useCallback((source, midi) => {
+    if (ready) return controller.current?.press(source, midi);
+    if (!activate) return false;
+    const note = { midi, ready: false };
+    pending.current.set(source, note);
+    void activate().then((enabled) => {
+      if (!enabled) {
+        if (pending.current.get(source) === note) pending.current.delete(source);
+        return;
+      }
+      note.ready = true;
+      playPending(source, note);
+    });
+  }, [ready, activate, playPending]);
+  const move = useCallback((source, midi) => {
+    const note = pending.current.get(source);
+    if (!note) return controller.current?.move(source, midi);
+    note.midi = midi;
+    playPending(source, note);
+  }, [playPending]);
+  const releaseHeld = useCallback(() => {
+    pending.current.clear();
+    controller.current?.releaseHeld();
+  }, []);
   const setLatched = useCallback((value) => controller.current?.setLatched(value), []);
   const setMomentary = useCallback((value) => controller.current?.setMomentary(value), []);
   return { ...state, press, move, release, stopAll, releaseHeld, setLatched, setMomentary };
