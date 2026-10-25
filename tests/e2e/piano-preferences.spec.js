@@ -1,4 +1,4 @@
-import { toggleSettings } from '../helpers/pianoUi.js';
+import { toggleSettings, closeSettings, clickControl, fillTempo } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { PREFERENCES_KEY } from '../../src/lib/pianoPreferences.js';
 
@@ -18,9 +18,10 @@ test('reload restores only preferences and keeps audio, transport, sustain and p
   await page.getByRole('button', { name: 'Mute', exact: true }).click();
   await toggleSettings(page);
   await enable(page);
-  await page.getByRole('slider', { name: 'Tempo', exact: true }).fill('131');
-  await page.getByRole('button', { name: 'Latch sustain' }).click();
-  await page.getByRole('button', { name: 'Metronome', exact: true }).click();
+  await fillTempo(page, '131');
+  await clickControl(page, 'Latch sustain');
+  await clickControl(page, 'Metronome');
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(1);
@@ -37,9 +38,9 @@ test('reload restores only preferences and keeps audio, transport, sustain and p
   await expect(page.getByRole('button', { name: 'Mute', exact: true })).toHaveAttribute('aria-pressed', 'false');
   await toggleSettings(page);
   await enable(page);
-  await expect(page.getByRole('slider', { name: 'Tempo', exact: true })).toHaveValue('131');
-  await expect(page.getByRole('button', { name: 'Metronome', exact: true })).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.getByRole('button', { name: 'Latch sustain' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('slider', { name: 'Tempo', exact: true, includeHidden: true })).toHaveValue('131');
+  await expect(page.getByRole('button', { name: 'Metronome', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'C4', exact: true }).getByText('C4')).toBeVisible();
   await expect(page.getByRole('button', { name: 'C4', exact: true }).getByText('A', { exact: true })).toBeVisible();
@@ -76,14 +77,15 @@ for (const failure of ['read', 'write']) {
     await page.screenshot({ path: testInfo.outputPath(`storage-${failure}.png`) });
     await toggleSettings(page);
     await enable(page);
-    await page.getByRole('slider', { name: 'Tempo', exact: true }).fill('150');
+    await fillTempo(page, '150');
+    await closeSettings(page);
     await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
     await page.keyboard.down('a');
     await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(1);
     await page.keyboard.up('a');
-    await page.getByRole('button', { name: 'Metronome', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Metronome', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await page.getByRole('button', { name: 'Stop all', exact: true }).click();
+    await clickControl(page, 'Metronome');
+    await expect(page.getByRole('button', { name: 'Metronome', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
+    await clickControl(page, 'Stop all');
     expect(errors).toEqual([]);
   });
 }
@@ -114,6 +116,7 @@ test('settings remain reachable on portrait, short landscape and enlarged text l
 });
 
 async function enable(page) {
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
 }

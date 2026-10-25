@@ -74,7 +74,13 @@ export function createNoteController(audio, onChange, onEvent = () => {}) {
     publish();
   }
 
-  return { press, move, release, stopAll,
+  function releaseHeld() {
+    for (const source of [...sources.keys()]) release(source);
+    setPedal('latch', false);
+    setPedal('momentary', false);
+  }
+
+  return { press, move, release, stopAll, releaseHeld,
     setLatched: (value) => setPedal('latch', value),
     setMomentary: (value) => setPedal('momentary', value) };
 }

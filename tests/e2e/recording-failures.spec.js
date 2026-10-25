@@ -1,3 +1,4 @@
+import { goTo } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test('unavailable IndexedDB explains the storage failure without blocking the library view', async ({ page }, testInfo) => {
@@ -5,7 +6,7 @@ test('unavailable IndexedDB explains the storage failure without blocking the li
     Object.defineProperty(window, 'indexedDB', { configurable: true, value: null });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await goTo(page, 'Recordings');
   await expect(page.getByRole('status').filter({ hasText: 'IndexedDB is unavailable in this browser.' })).toBeVisible();
   await expect(page.getByText('No saved recordings yet.')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('recordings-indexeddb-unavailable.png') });
@@ -13,7 +14,7 @@ test('unavailable IndexedDB explains the storage failure without blocking the li
 
 test('corrupt stored recordings are ignored and the library remains usable', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await goTo(page, 'Recordings');
   await expect(page.getByText('No saved recordings yet.')).toBeVisible();
   await page.evaluate(() => new Promise((resolve, reject) => {
     const request = indexedDB.open('qazals-piano.recordings.v1', 2);
@@ -27,7 +28,7 @@ test('corrupt stored recordings are ignored and the library remains usable', asy
     };
   }));
   await page.reload();
-  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await goTo(page, 'Recordings');
   await expect(page.getByText('No saved recordings yet.')).toBeVisible();
   await expect(page.locator('.recording-item')).toHaveCount(0);
 });

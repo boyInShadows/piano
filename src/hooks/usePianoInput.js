@@ -35,7 +35,8 @@ export function usePianoInput(engine, onEvent = () => {}, onInterruption = () =>
   const move = useCallback((source, midi) => controller.current?.move(source, midi), []);
   const release = useCallback((source) => controller.current?.release(source), []);
   const stopAll = useCallback(() => controller.current?.stopAll(), []);
+  const releaseHeld = useCallback(() => controller.current?.releaseHeld(), []);
   const setLatched = useCallback((value) => controller.current?.setLatched(value), []);
   const setMomentary = useCallback((value) => controller.current?.setMomentary(value), []);
-  return { ...state, press, move, release, stopAll, setLatched, setMomentary };
+  return { ...state, press, move, release, stopAll, releaseHeld, setLatched, setMomentary };
 }

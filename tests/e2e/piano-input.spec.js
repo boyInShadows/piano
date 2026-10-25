@@ -1,4 +1,4 @@
-import { toggleSettings } from '../helpers/pianoUi.js';
+import { toggleSettings, closeSettings, goTo, clickControl } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { getNoteName } from '../../src/lib/pianoNotes.js';
 
@@ -37,11 +37,13 @@ test.beforeEach(async ({ page }) => {
     };
   });
   await page.goto('/');
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
 });
 
 test('keyboard chords produce a real audio signal without repeat attacks or a 100ms queue', async ({ page }) => {
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
   await page.keyboard.down('d');
@@ -71,6 +73,7 @@ test('mouse and keyboard share ownership, glissando uses hit testing, and Escape
   const e = page.getByRole('button', { name: 'E4', exact: true });
   const cBox = await c.boundingBox();
   const eBox = await e.boundingBox();
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
   await page.mouse.move(cBox.x + cBox.width / 2, cBox.y + cBox.height * 0.85);
@@ -89,17 +92,18 @@ test('mouse and keyboard share ownership, glissando uses hit testing, and Escape
 });
 
 test('sustain, range changes, focus loss and typing guards preserve safe note state', async ({ page }) => {
-  await page.getByRole('button', { name: 'Latch sustain' }).click();
+  await clickControl(page, 'Latch sustain');
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('Space');
   await page.keyboard.press('a');
   expect(await page.evaluate(() => window.pianoAudio.stops.length)).toBe(0);
   await page.keyboard.up('Space');
-  await expect(page.getByRole('button', { name: 'Latch sustain' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.down('d');
   await page.getByRole('button', { name: 'Higher octave' }).click();
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Latch sustain' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
   await page.keyboard.up('d');
   const before = await page.evaluate(() => window.pianoAudio.starts.length);
   await toggleSettings(page);
@@ -107,6 +111,7 @@ test('sustain, range changes, focus loss and typing guards preserve safe note st
   await page.keyboard.press('a');
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(before);
   await toggleSettings(page);
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.press('Control+a');
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(before);
@@ -118,6 +123,7 @@ test('sustain, range changes, focus loss and typing guards preserve safe note st
   const beforeSuspend = await page.evaluate(() => window.pianoAudio.starts.length);
   await page.evaluate(() => window.pianoAudio.contexts[0].suspend());
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Resume sound' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(beforeSuspend);
@@ -126,6 +132,7 @@ test('sustain, range changes, focus loss and typing guards preserve safe note st
 
 test('Enter auditions the focused key and releases on keyup or interruption', async ({ page }) => {
   const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
+  await closeSettings(page);
   await keyboard.focus();
   await page.keyboard.press('ArrowRight');
   const focusedKey = page.locator(':focus[data-midi]');
@@ -141,17 +148,18 @@ test('Enter auditions the focused key and releases on keyup or interruption', as
 });
 
 test('records ownership and sustain transitions into a retained unsaved draft', async ({ page }) => {
-  await page.getByRole('button', { name: 'Record', exact: true }).click();
-  await page.getByRole('button', { name: 'Metronome', exact: true }).click();
+  await clickControl(page, 'Record');
+  await clickControl(page, 'Metronome');
   const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
+  await closeSettings(page);
   await keyboard.focus();
   await page.keyboard.down('a');
   await page.keyboard.down('d');
   await page.keyboard.up('d');
-  await page.getByRole('button', { name: 'Latch sustain', exact: true }).click();
+  await clickControl(page, 'Latch sustain');
   await page.keyboard.up('a');
-  await page.getByRole('button', { name: 'Stop recording', exact: true }).click();
-  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await clickControl(page, 'Stop recording');
+  await goTo(page, 'Recordings');
 
   const draft = page.locator('.recording-draft');
   await expect(draft).toContainText('Unsaved draft: Take 1');
@@ -160,19 +168,21 @@ test('records ownership and sustain transitions into a retained unsaved draft', 
 });
 
 test('finalizes a recording draft when the page loses focus', async ({ page }) => {
-  await page.getByRole('button', { name: 'Record', exact: true }).click();
+  await clickControl(page, 'Record');
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await page.keyboard.up('a');
-  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await goTo(page, 'Recordings');
 
   await expect(page.locator('.recording-draft')).toContainText('Unsaved draft: Take 1');
 });
 
 async function createReplayDraft(page, holdMilliseconds = 250) {
-  await page.getByRole('button', { name: 'Record', exact: true }).click();
+  await clickControl(page, 'Record');
   const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
+  await closeSettings(page);
   await keyboard.focus();
   await page.keyboard.down('a');
   await page.waitForTimeout(holdMilliseconds);
@@ -180,8 +190,8 @@ async function createReplayDraft(page, holdMilliseconds = 250) {
   await page.waitForTimeout(100);
   await page.keyboard.up('d');
   await page.keyboard.up('a');
-  await page.getByRole('button', { name: 'Stop recording', exact: true }).click();
-  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await clickControl(page, 'Stop recording');
+  await goTo(page, 'Recordings');
   await expect(page.locator('.recording-draft')).toBeVisible();
 }
 
@@ -193,10 +203,11 @@ test('replay disables live input and Stop all cancels pending replay events', as
   await expect.poll(() => page.evaluate(() => window.pianoAudio.starts.length)).toBeGreaterThan(startsBeforeReplay);
   await expect(page.getByRole('button', { name: 'C4', exact: true })).toBeDisabled();
   const startsDuringReplay = await page.evaluate(() => window.pianoAudio.starts.length);
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.press('a');
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(startsDuringReplay);
-  await page.getByRole('button', { name: 'Stop all', exact: true }).click();
+  await clickControl(page, 'Stop all');
   await expect(page.getByRole('status').filter({ hasText: 'Replaying recording' })).toHaveCount(0);
   await page.waitForTimeout(650);
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(startsDuringReplay);
@@ -209,6 +220,7 @@ test('replay returns to idle after the recorded duration and release tail', asyn
   await expect.poll(() => page.evaluate(() => window.pianoAudio.starts.length)).toBeGreaterThan(startsBeforeReplay);
   await expect(page.getByRole('status').filter({ hasText: 'Replaying recording' })).toBeHidden({ timeout: 1500 });
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(startsBeforeReplay + 2);
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.press('a');
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(startsBeforeReplay + 3);
@@ -231,6 +243,7 @@ test('every piano pitch dispatches a finite repitched source', async ({ page }, 
 
 test('physical code mapping ignores printed layout, composition and modifier shortcuts', async ({ page }) => {
   const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
+  await closeSettings(page);
   await keyboard.focus();
   for (const modifier of ['ctrlKey', 'metaKey', 'altKey']) {
     await keyboard.dispatchEvent('keydown', { code: 'KeyA', key: 'a', [modifier]: true });

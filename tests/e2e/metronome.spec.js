@@ -1,4 +1,4 @@
-import { toggleSettings } from '../helpers/pianoUi.js';
+import { openSettings, closeSettings, goTo, clickControl, fillTempo } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -36,17 +36,19 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function ready(page) {
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
 }
 
 test('metronome stays gesture gated, schedules 4/4 on the audio clock, and survives tempo edits without duplicate clicks', async ({ page }) => {
-  const toggle = page.getByRole('button', { name: 'Metronome', exact: true });
+  const toggle = page.getByRole('button', { name: 'Metronome', exact: true, includeHidden: true });
   await expect(toggle).toBeHidden();
   expect(await page.evaluate(() => window.metronomeAudio.contexts.length)).toBe(0);
   await ready(page);
-  await page.getByRole('slider', { name: 'Tempo', exact: true }).fill('240');
-  await toggle.click();
+  await openSettings(page);
+  await fillTempo(page, '240');
+  await openSettings(page); await toggle.click();
   await expect.poll(() => page.evaluate(() => window.metronomeAudio.clicks.length)).toBeGreaterThanOrEqual(5);
   const events = await page.evaluate(() => window.metronomeAudio.clicks.slice(0, 5));
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
@@ -55,30 +57,31 @@ test('metronome stays gesture gated, schedules 4/4 on the audio clock, and survi
   expect(events.every((event) => event.time >= event.now)).toBe(true);
   await expect(page.locator('#metronome-beat-description')).toHaveText(/Beat [1-4] of 4 at 240 BPM/);
   const edited = await page.evaluate(() => window.metronomeAudio.clicks.length);
-  await page.getByRole('slider', { name: 'Tempo', exact: true }).fill('120');
+  await fillTempo(page, '120');
   await expect.poll(() => page.evaluate((offset) => window.metronomeAudio.clicks.length - offset, edited)).toBeGreaterThanOrEqual(4);
   const changed = await page.evaluate((offset) => window.metronomeAudio.clicks.slice(offset), edited);
   expect(changed.at(-1).time - changed.at(-2).time).toBeCloseTo(0.5, 3);
   for (let index = 1; index < changed.length; index += 1) expect(changed[index].time - changed[index - 1].time).toBeGreaterThanOrEqual(0.249);
-  await toggle.click();
+  await openSettings(page); await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   const stopped = await page.evaluate(() => window.metronomeAudio.clicks.length);
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => window.metronomeAudio.clicks.length)).toBe(stopped);
-  await page.getByRole('slider', { name: 'Tempo', exact: true }).fill('40');
-  await toggle.click();
+  await fillTempo(page, '40');
+  await openSettings(page); await toggle.click();
   await expect.poll(() => page.evaluate((offset) => window.metronomeAudio.clicks.length - offset, stopped), { timeout: 6000 }).toBeGreaterThanOrEqual(2);
   const slow = await page.evaluate((offset) => window.metronomeAudio.clicks.slice(offset), stopped);
   expect(slow[1].time - slow[0].time).toBeCloseTo(1.5, 3);
-  await page.getByRole('button', { name: 'Stop all', exact: true }).click();
+  await clickControl(page, 'Stop all');
   expect(await page.evaluate(() => window.metronomeAudio.contexts.length)).toBe(1);
 });
 
 test('rapid toggles, stop-all, range, focus, visibility, settings and suspension leave no running click', async ({ page }) => {
   await ready(page);
-  const toggle = page.getByRole('button', { name: 'Metronome', exact: true });
-  await page.getByRole('slider', { name: 'Tempo', exact: true }).fill('240');
-  for (let cycle = 0; cycle < 4; cycle += 1) { await toggle.click(); await toggle.click(); }
+  await openSettings(page);
+  const toggle = page.getByRole('button', { name: 'Metronome', exact: true, includeHidden: true });
+  await fillTempo(page, '240');
+  for (let cycle = 0; cycle < 4; cycle += 1) { await openSettings(page); await toggle.click(); await openSettings(page); await toggle.click(); }
   const interruptions = [
     () => page.getByRole('button', { name: 'Stop all', exact: true }).click(),
     () => page.getByRole('button', { name: 'Higher octave' }).click(),
@@ -89,41 +92,44 @@ test('rapid toggles, stop-all, range, focus, visibility, settings and suspension
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });
       document.dispatchEvent(new Event('visibilitychange'));
     }),
-    async () => { await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus(); await page.keyboard.press('Escape'); },
-    async () => { await toggleSettings(page); await toggleSettings(page); },
-    async () => { await page.getByRole('button', { name: 'Help', exact: true }).click(); await page.getByRole('button', { name: 'Play', exact: true }).click(); },
+    async () => { await closeSettings(page);
+  await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus(); await page.keyboard.press('Escape'); },
+    async () => { await goTo(page, 'Help'); await goTo(page, 'Play'); },
     () => page.setViewportSize({ width: 568, height: 320 }),
   ];
   for (const interrupt of interruptions) {
-    await toggle.click();
+    await openSettings(page); await toggle.click();
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await interrupt();
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByRole('slider', { name: 'Tempo', exact: true })).toHaveValue('240');
+    await expect(page.getByRole('slider', { name: 'Tempo', exact: true, includeHidden: true })).toHaveValue('240');
     const stopped = await page.evaluate(() => window.metronomeAudio.clicks.length);
     await page.waitForTimeout(180);
     expect(await page.evaluate(() => window.metronomeAudio.clicks.length)).toBe(stopped);
   }
-  await toggle.click();
+  await openSettings(page); await toggle.click();
   await page.evaluate(() => window.metronomeAudio.contexts[0].suspend());
   await expect(page.getByRole('button', { name: 'Resume sound', exact: true })).toBeVisible();
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Resume sound', exact: true }).click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  await toggle.click();
+  await openSettings(page); await toggle.click();
   await page.evaluate(async () => {
     const context = window.metronomeAudio.contexts[0];
     await context.suspend();
     window.metronomeAudio.resume = context.resume.bind(context);
     context.resume = () => Promise.reject(new Error('Simulated resume failure'));
   });
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Resume sound', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Retry sound', exact: true })).toBeVisible();
   await page.evaluate(() => { window.metronomeAudio.contexts[0].resume = window.metronomeAudio.resume; });
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Retry sound', exact: true }).click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  await toggle.click();
+  await openSettings(page); await toggle.click();
   expect(await peak(page, 600)).toBeGreaterThan(0.0001);
-  await page.getByRole('button', { name: 'Stop all', exact: true }).click();
+  await clickControl(page, 'Stop all');
   expect(await page.evaluate(() => window.metronomeAudio.contexts.length)).toBe(1);
 });
 
@@ -131,10 +137,11 @@ test('mute silences real output while preserving the running beat and reduced mo
   await page.setViewportSize({ width: 1440, height: 1200 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await ready(page);
-  await toggleSettings(page);
-  const toggle = page.getByRole('button', { name: 'Metronome', exact: true });
+  await openSettings(page);
+  await openSettings(page);
+  const toggle = page.getByRole('button', { name: 'Metronome', exact: true, includeHidden: true });
   await expect(toggle).toBeVisible();
-  await page.getByRole('slider', { name: 'Tempo', exact: true }).fill('240');
+  await fillTempo(page, '240');
   await toggle.focus();
   await page.keyboard.press('Enter');
   expect(await peak(page, 600)).toBeGreaterThan(0.0001);
@@ -148,7 +155,7 @@ test('mute silences real output while preserving the running beat and reduced mo
   expect(await page.evaluate(() => window.metronomeAudio.clicks.length)).toBeGreaterThan(before);
   await expect(page.locator('.metronome-beats')).toHaveCSS('animation-name', 'none');
   await page.screenshot({ path: testInfo.outputPath('settings-metronome.png') });
-  await page.getByRole('button', { name: 'Stop all', exact: true }).click();
+  await clickControl(page, 'Stop all');
 });
 
 async function peak(page, duration) {

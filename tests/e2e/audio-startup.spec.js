@@ -1,3 +1,4 @@
+import { closeSettings } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -21,6 +22,7 @@ test('loads samples only after a gesture and resumes a single context', async ({
   await page.goto('/');
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(0);
   expect(samples).toHaveLength(0);
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   expect(samples).toHaveLength(16);
@@ -31,6 +33,7 @@ test('loads samples only after a gesture and resumes a single context', async ({
   expect(sampleResponse.headers()['cache-control']).toContain('immutable');
   await page.evaluate(() => window.audioContexts[0].suspend());
   await expect(page.getByRole('button', { name: 'Resume sound' })).toBeVisible();
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Resume sound' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(1);
@@ -40,10 +43,12 @@ test('loads samples only after a gesture and resumes a single context', async ({
 test('failed sample load can be retried without another context or stale readiness', async ({ page }) => {
   await page.route('**/A0.mp3', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
   await page.goto('/');
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Retry sound' })).toBeVisible();
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(1);
   await page.unroute('**/A0.mp3');
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Retry sound' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(1);

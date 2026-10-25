@@ -1,4 +1,4 @@
-import { toggleSettings } from '../helpers/pianoUi.js';
+import { toggleSettings, closeSettings, goTo } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test('serves the selected piano shell and navigates without browser errors', async ({ page, request }, testInfo) => {
@@ -15,19 +15,20 @@ test('serves the selected piano shell and navigates without browser errors', asy
   await expect(page).toHaveTitle("Qazal's Piano");
   await expect(page.getByRole('heading', { name: "Qazal's Piano", exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'C4', exact: true })).toBeVisible();
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await expect(page.getByRole('group', { name: 'Piano keyboard', exact: true })).toBeFocused();
   await expect(page.getByRole('group', { name: 'Piano keyboard', exact: true })).toHaveCSS('outline-color', 'rgb(248, 245, 235)');
   await page.screenshot({ path: testInfo.outputPath('desktop-clean.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await goTo(page, 'Recordings');
   await expect(page.getByRole('heading', { name: 'Your recordings' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Your recordings' })).toBeFocused();
-  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await goTo(page, 'Help');
   await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeVisible();
   await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeFocused();
-  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await goTo(page, 'Play');
   await toggleSettings(page);
-  await expect(page.getByRole('heading', { name: 'Keyboard settings' })).toBeFocused();
+  await expect(page.getByRole('heading', { name: 'Piano settings' })).toBeFocused();
   await page.getByRole('checkbox', { name: 'Show note names' }).check();
   await toggleSettings(page);
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
@@ -36,7 +37,7 @@ test('serves the selected piano shell and navigates without browser errors', asy
   await page.screenshot({ path: testInfo.outputPath('desktop.png'), fullPage: true });
 
   await page.setViewportSize({ width: 320, height: 568 });
-  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await goTo(page, 'Help');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('phone-help.png'), fullPage: true });
   expect(errors).toEqual([]);

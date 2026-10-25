@@ -73,6 +73,18 @@ test('a rejected attack never acquires a false owner or emits a later release', 
   assert.deepEqual(events, []);
 });
 
+test('opening controls releases held keys and pedals without stopping a running transport', () => {
+  const { input, events, states } = setup();
+  input.press('key:KeyA', 60);
+  input.press('pointer:2', 60);
+  input.setLatched(true);
+  input.releaseHeld();
+  assert.deepEqual(events, [['on', 60], ['sustain', true], ['off', 60], ['sustain', false]]);
+  assert.equal(states.at(-1).notes.size, 0);
+  input.move('pointer:2', 64);
+  assert.equal(events.length, 4);
+});
+
 test('emits one recording event per audible ownership and effective sustain transition', () => {
   const recorded = [];
   const { input } = setup((event) => recorded.push(event));

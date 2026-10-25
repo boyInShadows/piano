@@ -1,4 +1,4 @@
-import { toggleSettings } from '../helpers/pianoUi.js';
+import { toggleSettings, closeSettings, goTo, clickControl } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 
@@ -9,15 +9,16 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Rotate your phone to play' })).toBeVisible();
   await expect(page.getByText(/rotation lock/)).toBeVisible();
-  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await goTo(page, 'Help');
   await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeVisible();
-  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await goTo(page, 'Recordings');
   await expect(page.getByRole('heading', { name: 'Your recordings' })).toBeVisible();
-  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await goTo(page, 'Play');
   await expect(page.getByRole('heading', { name: 'Rotate your phone to play' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('portrait-guide.png') });
   await page.getByRole('button', { name: 'Use compact keyboard' }).click();
   await expect(page.locator('.piano-key')).toHaveCount(12);
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   for (const width of [320, 390]) {
@@ -42,6 +43,7 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   await expect(page.locator('.piano-key')).toHaveCount(25);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('.piano-key')).toHaveCount(12);
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(1);
@@ -55,6 +57,7 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
 
 test('landscape and tablet geometry retains usable keys and controls', async ({ page }, testInfo) => {
   await page.goto('/');
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   for (const [width, height] of [[568, 320], [667, 375], [844, 390], [768, 1024], [1024, 768], [1280, 720], [1440, 900]]) {
@@ -68,13 +71,15 @@ test('phone browser bars leave room for playable landscape keys and rotation rec
   await page.setViewportSize({ width: 838, height: 286 });
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Enable sound', exact: true })).toBeVisible();
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   await assertGeometry(page, { width: 838, height: 286 }, testInfo);
-  await page.getByRole('button', { name: 'Record', exact: true }).click();
+  await clickControl(page, 'Record');
   await expect(page.getByRole('status').filter({ hasText: 'Recording musical events' })).toBeVisible();
   await assertGeometry(page, { width: 838, height: 286 }, testInfo);
-  await page.getByRole('button', { name: 'Stop recording', exact: true }).click();
+  await clickControl(page, 'Stop recording');
+  await closeSettings(page);
   await page.setViewportSize({ width: 393, height: 766 });
   await expect(page.getByRole('heading', { name: 'Rotate your phone to play' })).toBeVisible();
   await page.getByRole('button', { name: 'Use compact keyboard' }).click();
@@ -93,6 +98,7 @@ test('rotation and shrinking space clear held notes and pedal without recreating
     };
   });
   await page.goto('/');
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   await page.setViewportSize({ width: 568, height: 320 });
@@ -100,8 +106,9 @@ test('rotation and shrinking space clear held notes and pedal without recreating
   await page.screenshot({ path: testInfo.outputPath('ready-landscape-568.png') });
   await page.setViewportSize({ width: 844, height: 390 });
   for (let rotation = 0; rotation < 3; rotation += 1) {
-    await page.getByRole('button', { name: 'Metronome', exact: true }).click();
-    await page.getByRole('button', { name: 'Latch sustain' }).click();
+    await clickControl(page, 'Metronome');
+    await clickControl(page, 'Latch sustain');
+    await closeSettings(page);
     await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
     await page.keyboard.down('Space');
     await page.keyboard.down('a');
@@ -111,27 +118,28 @@ test('rotation and shrinking space clear held notes and pedal without recreating
     await page.keyboard.up('a');
     await page.keyboard.up('Space');
     await page.setViewportSize({ width: 844, height: 390 });
-    await expect(page.getByRole('button', { name: 'Latch sustain' })).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByRole('button', { name: 'Metronome', exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('button', { name: 'Metronome', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
   }
   expect(await page.evaluate(() => window.audioContexts.length)).toBe(1);
   await page.locator('main').evaluate((element) => { element.style.height = '1200px'; });
-  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await goTo(page, 'Help');
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await goTo(page, 'Play');
   await expect(page.getByRole('heading', { name: 'Rotate your phone to play' })).toBeVisible();
   await page.setViewportSize({ width: 844, height: 390 });
   await page.locator('main').evaluate((element) => { element.style.height = ''; });
-  await page.getByRole('button', { name: 'Latch sustain' }).click();
+  await clickControl(page, 'Latch sustain');
+  await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
   await toggleSettings(page);
-  await expect(page.getByRole('heading', { name: 'Keyboard settings' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Piano settings' })).toBeVisible();
   await expect(page.locator('.key-surface')).toBeVisible();
   await toggleSettings(page);
   await page.keyboard.up('a');
-  await expect(page.getByRole('button', { name: 'Latch sustain' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
 });
 
@@ -141,19 +149,19 @@ test('unusable compact space explains the limit while preserving navigation and 
   await page.getByRole('button', { name: 'Use compact keyboard' }).click();
   await expect(page.getByText('This window is too narrow for this key range.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'C4', exact: true })).toBeHidden();
-  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await goTo(page, 'Help');
   await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeVisible();
   await page.setViewportSize({ width: 844, height: 250 });
-  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await goTo(page, 'Play');
   await expect(page.getByRole('heading', { name: 'A little more room to play' })).toBeVisible();
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.evaluate(() => { document.documentElement.style.zoom = '2'; document.body.style.fontSize = '200%'; });
-  await expect(page.getByRole('heading', { name: 'A little more room to play' })).toBeVisible();
+  await expect(page.locator('.key-surface')).toBeVisible();
+  await assertGeometry(page, { width: 1024, height: 768 }, testInfo);
   expect(await page.locator('meta[name="viewport"]').getAttribute('content')).not.toMatch(/user-scalable=no|maximum-scale=1(?:,|$)/);
-  await page.getByRole('heading', { name: 'A little more room to play' }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: testInfo.outputPath('zoom-large-text-guide.png') });
+  await page.screenshot({ path: testInfo.outputPath('zoom-large-text-instrument.png') });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await goTo(page, 'Help');
   await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeVisible();
 });
 
@@ -169,7 +177,7 @@ async function assertGeometry(page, viewport, testInfo) {
       const { x, y, width, height, right, bottom } = node.getBoundingClientRect();
       return { label: node.getAttribute('aria-label') || node.textContent, x, y, width, height, right, bottom };
     });
-    return { white: boxes('.piano-key--white'), black: boxes('.piano-key--black'), controls: boxes('.app-bar button, .range-bar button, .audio-controls button, .audio-controls input'), overflow: document.documentElement.scrollWidth > innerWidth };
+    return { white: boxes('.piano-key--white'), black: boxes('.piano-key--black'), controls: boxes('.settings-button, .range-bar button, .audio-controls button, .audio-controls input'), overflow: document.documentElement.scrollWidth > innerWidth };
   });
   expect(measured.overflow).toBe(false);
   for (const box of measured.white) {

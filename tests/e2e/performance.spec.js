@@ -1,3 +1,4 @@
+import { closeSettings, clickControl } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 
@@ -36,16 +37,18 @@ test('records a desktop audio and interaction stability baseline', async ({ page
   });
 
   await page.goto('/');
+  await closeSettings(page);
   await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
+  await closeSettings(page);
   await keyboard.focus();
   for (const code of ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';']) await page.keyboard.down(code);
   await page.waitForTimeout(100);
   for (const code of ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';']) await page.keyboard.up(code);
-  await page.getByRole('button', { name: 'Metronome', exact: true }).click();
+  await clickControl(page, 'Metronome');
   await page.waitForTimeout(30_000);
-  await page.getByRole('button', { name: 'Stop all', exact: true }).click();
+  await clickControl(page, 'Stop all');
 
   const evidence = await page.evaluate(() => ({
     ...window.performanceEvidence,

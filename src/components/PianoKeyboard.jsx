@@ -117,11 +117,11 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
       <div className="range-bar">
         <button type="button" aria-label="Lower octave" disabled={layout.start === 21 || !fits} onClick={() => changeRange(Math.ceil(layout.start / 12) * 12 - 12)}>
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5" /></svg>
-          Lower octave
+          <span className="visually-hidden">Lower octave</span>
         </button>
-        <output aria-label="Visible note range" aria-live="polite">{getNoteName(layout.start)}–{getNoteName(layout.end)}</output>
+        <output className="visually-hidden" aria-label="Visible note range" aria-live="polite">{getNoteName(layout.start)}–{getNoteName(layout.end)}</output>
         <button type="button" aria-label="Higher octave" disabled={layout.end === 108 || !fits} onClick={() => changeRange(Math.floor(layout.start / 12) * 12 + 12)}>
-          Higher octave
+          <span className="visually-hidden">Higher octave</span>
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>
         </button>
       </div>
