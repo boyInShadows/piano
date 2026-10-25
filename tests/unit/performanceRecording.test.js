@@ -56,6 +56,21 @@ test('captures sustain before the first note as initial state and ignores duplic
   ]);
 });
 
+test('ignores duplicate note ownership and stale releases without corrupting the draft', () => {
+  const { recorder } = setup();
+  recorder.start(50);
+  assert.equal(recorder.record({ kind: 'note-on', note: 60, velocity: 0.72 }, 51), true);
+  assert.equal(recorder.record({ kind: 'note-on', note: 60, velocity: 0.72 }, 52), false);
+  assert.equal(recorder.record({ kind: 'note-off', note: 64 }, 53), false);
+  assert.equal(recorder.record({ kind: 'note-off', note: 60 }, 54), true);
+  const draft = recorder.stop(55);
+
+  assert.deepEqual(draft.events.map(({ kind, note, time }) => ({ kind, note, time })), [
+    { kind: 'note-on', note: 60, time: 0 },
+    { kind: 'note-off', note: 60, time: 3 },
+  ]);
+});
+
 test('rejects invalid events and empty takes without producing a draft', () => {
   const { recorder } = setup();
   recorder.start(30);

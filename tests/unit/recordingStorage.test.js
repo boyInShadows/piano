@@ -54,6 +54,15 @@ test('saves valid records, rejects invalid records, and enforces the library lim
   assert.equal(MAX_SAVED_RECORDINGS, 20);
 });
 
+test('keeps existing records when a new save transaction fails', async () => {
+  const first = recording('first', '2026-10-25T01:00:00.000Z');
+  const fixture = setup([first]);
+  fixture.database.put = async () => { throw new Error('quota'); };
+
+  await assert.rejects(() => fixture.store.save(recording('second', '2026-10-25T02:00:00.000Z')), RecordingStorageError);
+  assert.deepEqual((await fixture.store.list()).map(({ id }) => id), ['first']);
+});
+
 test('retains storage failures as rejected operations and closes an opened adapter', async () => {
   let opened;
   const store = createRecordingStore({ openDatabase: async () => {
