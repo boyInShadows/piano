@@ -33,6 +33,7 @@ next-env.d.ts
 .agents/
 .claude/
 .codex/
+.impeccable/
 .graphify-cache/
 graphify-out/
 .codebase-memory/
