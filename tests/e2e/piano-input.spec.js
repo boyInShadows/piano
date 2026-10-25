@@ -153,6 +153,50 @@ test('finalizes a recording draft when the page loses focus', async ({ page }) =
   await expect(page.locator('.recording-draft')).toContainText('Unsaved draft: Take 1');
 });
 
+async function createReplayDraft(page, holdMilliseconds = 250) {
+  await page.getByRole('button', { name: 'Record', exact: true }).click();
+  const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
+  await keyboard.focus();
+  await page.keyboard.down('a');
+  await page.waitForTimeout(holdMilliseconds);
+  await page.keyboard.down('d');
+  await page.waitForTimeout(100);
+  await page.keyboard.up('d');
+  await page.keyboard.up('a');
+  await page.getByRole('button', { name: 'Stop recording', exact: true }).click();
+  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+  await expect(page.locator('.recording-draft')).toBeVisible();
+}
+
+test('replay disables live input and Stop all cancels pending replay events', async ({ page }) => {
+  await createReplayDraft(page, 500);
+  const startsBeforeReplay = await page.evaluate(() => window.pianoAudio.starts.length);
+  await page.getByRole('button', { name: 'Replay', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Replaying recording' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.pianoAudio.starts.length)).toBeGreaterThan(startsBeforeReplay);
+  await expect(page.getByRole('button', { name: 'C4', exact: true })).toBeDisabled();
+  const startsDuringReplay = await page.evaluate(() => window.pianoAudio.starts.length);
+  await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
+  await page.keyboard.press('a');
+  expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(startsDuringReplay);
+  await page.getByRole('button', { name: 'Stop all', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Replaying recording' })).toHaveCount(0);
+  await page.waitForTimeout(650);
+  expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(startsDuringReplay);
+});
+
+test('replay returns to idle after the recorded duration and release tail', async ({ page }) => {
+  await createReplayDraft(page, 100);
+  const startsBeforeReplay = await page.evaluate(() => window.pianoAudio.starts.length);
+  await page.getByRole('button', { name: 'Replay', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.pianoAudio.starts.length)).toBeGreaterThan(startsBeforeReplay);
+  await expect(page.getByRole('status').filter({ hasText: 'Replaying recording' })).toBeHidden({ timeout: 1500 });
+  expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(startsBeforeReplay + 2);
+  await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
+  await page.keyboard.press('a');
+  expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(startsBeforeReplay + 3);
+});
+
 test('every piano pitch dispatches a finite repitched source', async ({ page }, testInfo) => {
   const lower = page.getByRole('button', { name: 'Lower octave' });
   for (let step = 0; step < 8 && await lower.isEnabled(); step += 1) await lower.click();

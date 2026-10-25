@@ -1,6 +1,8 @@
 import soundbank from '../../public/audio/piano/salamander-v1/manifest.json' with { type: 'json' };
 import { getNoteName } from './pianoNotes.js';
 import { createMetronome } from './metronome.js';
+import { createReplayScheduler } from './replayScheduler.js';
+import { validateRecording } from './performanceRecording.js';
 
 async function loadToneClasses() {
   // The pinned class entry avoids the main entry's eager default AudioContext.
@@ -26,6 +28,8 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
   let sustain = false;
   let metronome;
   let metronomeState = { running: false, beat: 0 };
+  let replay;
+  let replayState = { running: false, notes: [], sustain: false };
   let audioState;
   let buffers = new Map();
   const voices = new Map();
@@ -35,7 +39,12 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     if (disposed) return;
     status = next;
     audioState = { status, loaded, total, decodedBytes };
-    onState({ ...audioState, metronome: metronomeState });
+    onState({ ...audioState, metronome: metronomeState, replay: replayState });
+  }
+
+  function publishReplay(next) {
+    replayState = next;
+    if (!disposed && audioState) onState({ ...audioState, metronome: metronomeState, replay: replayState });
   }
 
   function finish(voice) {
@@ -45,16 +54,16 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     voices.delete(voice.source);
   }
 
-  function releaseVoice(voice, duration = 0.15) {
+  function releaseVoice(voice, duration = 0.15, at = nativeContext.currentTime) {
     voice.held = false;
     voice.releasing = true;
-    const now = nativeContext.currentTime;
-    voice.envelope.gain.cancelAndHoldAtTime(now);
-    voice.envelope.gain.linearRampToValueAtTime(0, now + duration);
-    voice.source.stop(now + duration);
+    voice.envelope.gain.cancelAndHoldAtTime(at);
+    voice.envelope.gain.linearRampToValueAtTime(0, at + duration);
+    voice.source.stop(at + duration);
   }
 
   function stopAll() {
+    replay?.stop();
     metronome?.stop();
     sustain = false;
     for (const voice of voices.values()) {
@@ -140,17 +149,17 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     return pending;
   }
 
-  function attack(midi) {
+  function attack(midi, at) {
     getNoteName(midi);
     if (disposed || status !== 'ready' || nativeContext.state !== 'running') return false;
+    let when = Math.max(at ?? nativeContext.currentTime, nativeContext.currentTime);
     for (const voice of voices.values()) {
-      if (voice.midi === midi && !voice.releasing) releaseVoice(voice);
+      if (voice.midi === midi && !voice.releasing) releaseVoice(voice, 0.15, when);
     }
-    let when = nativeContext.currentTime;
     if (voices.size >= 64) {
       const oldest = [...voices.values()].find((voice) => !voice.held);
       if (!oldest) return false;
-      releaseVoice(oldest, 0.005);
+      releaseVoice(oldest, 0.005, when);
       voices.delete(oldest.source);
       when += 0.005;
     }
@@ -170,20 +179,22 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     return true;
   }
 
-  function release(midi) {
+  function release(midi, at) {
+    const when = at ?? nativeContext.currentTime;
     for (const voice of voices.values()) {
       if (voice.midi === midi && voice.held) {
         voice.held = false;
-        if (!sustain) releaseVoice(voice);
+        if (!sustain) releaseVoice(voice, 0.15, when);
       }
     }
   }
 
-  function setSustain(value) {
+  function setSustain(value, at) {
+    const when = at ?? nativeContext.currentTime;
     sustain = Boolean(value);
     if (!sustain) {
       for (const voice of voices.values()) {
-        if (!voice.held && !voice.releasing) releaseVoice(voice);
+        if (!voice.held && !voice.releasing) releaseVoice(voice, 0.15, when);
       }
     }
   }
@@ -204,14 +215,30 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     metronome ??= createMetronome({ context: nativeContext, toneContext, Clock: tone.Clock, output: master.input,
       onState(next) {
         metronomeState = next;
-        if (!disposed) onState({ ...audioState, metronome: next });
+        if (!disposed) onState({ ...audioState, metronome: next, replay: replayState });
       } });
     return metronome.start(bpm);
+  }
+
+  function startReplay(recording) {
+    if (disposed || status !== 'ready' || nativeContext.state !== 'running' || !validateRecording(recording) || !recording.events.length) return false;
+    stopAll();
+    replay ??= createReplayScheduler({
+      context: nativeContext,
+      toneContext,
+      Clock: tone.Clock,
+      onAttack: attack,
+      onRelease: release,
+      onSustain: setSustain,
+      onState: publishReplay,
+    });
+    return replay.start(recording);
   }
 
   function dispose() {
     if (disposed) return;
     disposed = true;
+    replay?.stop();
     metronome?.dispose();
     controller?.abort();
     for (const voice of voices.values()) {
@@ -226,7 +253,7 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     else if (nativeContext && nativeContext.state !== 'closed') nativeContext.close().catch(() => {});
   }
 
-  return { enable, attack, release, setSustain, setVolume, setMuted, stopAll, dispose, startMetronome,
+  return { enable, attack, release, setSustain, setVolume, setMuted, stopAll, dispose, startMetronome, startReplay,
     stopMetronome: () => metronome?.stop(), setTempo: (bpm) => metronome?.setTempo(bpm),
     now: () => nativeContext?.currentTime ?? 0 };
 }

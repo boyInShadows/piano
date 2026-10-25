@@ -23,6 +23,7 @@ export default function PianoApp() {
   const [recording, setRecording] = useState(false);
   const [draft, setDraft] = useState(null);
   const metronome = audio.metronome ?? { running: false, beat: 0 };
+  const replaying = audio.replay?.running ?? false;
   const engine = useRef(null);
   const takeNumber = useRef(1);
   const recorder = useRef(null);
@@ -41,6 +42,8 @@ export default function PianoApp() {
     return nextDraft;
   }, []);
   const { stopAll: releaseInputs, ...input } = usePianoInput(engine, recordEvent, finishRecording);
+  const pressedNotes = new Set(input.notes);
+  for (const note of audio.replay?.notes ?? []) pressedNotes.add(note);
   const stopAll = useCallback(() => {
     finishRecording();
     releaseInputs();
@@ -79,9 +82,15 @@ export default function PianoApp() {
   }
 
   function startRecording() {
-    if (audio.status !== 'ready' || draft || recorder.current?.isRecording()) return;
+    if (audio.status !== 'ready' || replaying || draft || recorder.current?.isRecording()) return;
     releaseInputs();
     if (recorder.current.start(engine.current?.now() ?? 0, false, `Take ${takeNumber.current++}`)) setRecording(true);
+  }
+
+  function replayDraft() {
+    if (!draft || recording || replaying) return;
+    stopAll();
+    if (engine.current?.startReplay(draft)) setView('Play');
   }
 
   return (
@@ -109,7 +118,7 @@ export default function PianoApp() {
           type="button"
           aria-expanded={settingsOpen}
           aria-controls="piano-settings"
-          onClick={() => { stopAll(); setSettingsOpen(!settingsOpen); }}
+          onClick={() => { if (!replaying) stopAll(); setSettingsOpen(!settingsOpen); }}
         >
           Settings
         </button>
@@ -150,7 +159,7 @@ export default function PianoApp() {
               <PianoKeyboard
                 compact={compact} onCompact={!compact && viewport.portrait && viewport.width < 600 ? chooseCompact : undefined}
                 showNotes={showNotes} showShortcuts={showShortcuts}
-                ready={audio.status === 'ready'} pressedNotes={input.notes}
+                ready={audio.status === 'ready'} disabled={replaying} pressedNotes={pressedNotes}
                 onPress={input.press} onMove={input.move} onRelease={input.release}
                 onMomentary={input.setMomentary} onStopAll={stopAll}
               />
@@ -172,9 +181,10 @@ export default function PianoApp() {
                   else engine.current.startMetronome(bpm);
                 }}
                 onTempo={(value) => { preferenceStore.update({ bpm: value }); engine.current.setTempo(value); }} />}
-              {audio.status === 'ready' && <button type="button" aria-label="Latch sustain" aria-pressed={input.latched} onClick={() => input.setLatched(!input.latched)}>{input.sustain ? 'Sustain on' : 'Sustain off'}</button>}
-              {audio.status === 'ready' && <button className="record-button" type="button" aria-pressed={recording} disabled={Boolean(draft) && !recording} onClick={recording ? stopAll : startRecording}>{recording ? 'Stop recording' : 'Record'}</button>}
+              {audio.status === 'ready' && <button type="button" aria-label="Latch sustain" aria-pressed={input.latched} disabled={replaying} onClick={() => input.setLatched(!input.latched)}>{input.sustain ? 'Sustain on' : 'Sustain off'}</button>}
+              {audio.status === 'ready' && <button className="record-button" type="button" aria-pressed={recording} disabled={replaying || (Boolean(draft) && !recording)} onClick={recording ? stopAll : startRecording}>{recording ? 'Stop recording' : 'Record'}</button>}
               {recording && <span className="recording-status" role="status">Recording musical events</span>}
+              {replaying && <span className="recording-status" role="status">Replaying recording</span>}
               <span className="pedal-status">{input.sustain ? 'Pedal on' : 'Pedal off'}</span>
               <button className="stop-all-button" type="button" onClick={stopAll}>Stop all</button>
             </div>
@@ -186,10 +196,13 @@ export default function PianoApp() {
       <section className="content-panel" hidden={view !== 'Recordings'} aria-labelledby="recordings-title">
         <h2 id="recordings-title">Your recordings</h2>
         {recording && <p role="status">Recording in progress. Return to Play and choose Stop recording when finished.</p>}
+        {replaying && <p role="status">Replaying recording. Live piano input is disabled until playback ends.</p>}
         {draft ? <div className="recording-draft" data-event-count={draft.events.length}>
           <h3>Unsaved draft: {draft.title}</h3>
           <p>{draft.events.length} musical events, {draft.duration.toFixed(2)} seconds.</p>
+          <button type="button" disabled={replaying} onClick={replayDraft}>Replay</button>
           <button type="button" onClick={() => { recorder.current.discard(); setDraft(null); }}>Discard draft</button>
+          {replaying && <button type="button" onClick={stopAll}>Stop playback</button>}
         </div> : <p className="empty-state">No saved recordings yet.</p>}
         <p>Recordings will stay in this browser.</p>
         <p>Clearing site data will remove saved recordings. There is no cloud sync.</p>
@@ -205,6 +218,7 @@ export default function PianoApp() {
         <p>Volume, note names, shortcut hints and tempo are saved in this browser when storage is available. Sound activation, mute, sustain and running transport reset on reload. Compact mode lasts only until reload.</p>
         <p>On a small screen, turn your phone sideways for larger keys. If rotation is locked, choose Use compact keyboard on the Play screen. This choice lasts until you reload; landscape automatically restores the larger range. If keys cannot fit, close Settings, zoom out or use a wider window.</p>
         <p>Enable sound to load the grand piano. Record captures note ownership and sustain events, then keeps an unsaved draft until saving is implemented.</p>
+        <p>Replay follows the recorded audio-clock timing, disables live keys, and can be cancelled with Stop all. Tempo does not change replay speed.</p>
         <p>Sound: <a href={soundbank.sourceUrl}>{soundbank.title}</a> by {soundbank.author}, licensed under <a href={soundbank.licenseUrl}>{soundbank.license}</a>. The web bank selects 16 samples and caps long tails at 12 seconds with a short fade.</p>
       </section>
     </main>

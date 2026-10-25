@@ -187,6 +187,37 @@ test('sustain preserves held voices and reattacks retire old sustained voices', 
   } finally { fixture.cleanup(); }
 });
 
+test('replay uses the audio scheduler time and stop-all cancels pending events', async () => {
+  const fixture = setup();
+  try {
+    await fixture.engine.enable();
+    const recording = {
+      schemaVersion: 1,
+      id: 'replay-1',
+      createdAt: '2026-10-25T00:00:00.000Z',
+      title: 'Take 1',
+      duration: 0.2,
+      bankId: 'salamander-v1',
+      events: [
+        { time: 0, sequence: 0, kind: 'note-on', note: 60, velocity: 0.72 },
+        { time: 0.1, sequence: 1, kind: 'note-off', note: 60 },
+      ],
+    };
+    assert.equal(fixture.engine.startReplay(recording), true);
+    const clock = fixture.clocks.at(-1);
+    clock.callback(10.1);
+    clock.callback(10.2);
+    assert.equal(fixture.sources[0].startArgs[0], 10.1);
+    assert.equal(fixture.sources[0].stopTime, 10.35);
+    assert.equal(fixture.states.at(-1).replay.running, true);
+    fixture.engine.stopAll();
+    assert.equal(clock.running, false);
+    assert.equal(fixture.states.at(-1).replay.running, false);
+    clock.callback(11);
+    assert.equal(fixture.sources.length, 1);
+  } finally { fixture.cleanup(); }
+});
+
 test('caps voices at 64, protects held notes, and evicts the oldest unheld voice', async () => {
   const fixture = setup();
   try {
