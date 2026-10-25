@@ -63,7 +63,8 @@ export default function PianoApp() {
     }
     return nextDraft;
   }, []);
-  const { stopAll: releaseInputs, ...input } = usePianoInput(engine, recordEvent, finishRecording);
+  const { stopAll: releaseInputs, ...input } = usePianoInput(engine, recordEvent, finishRecording,
+    { ready: audio.status === 'ready', activate: enableSound });
   const pressedNotes = new Set(input.notes);
   for (const note of audio.replay?.notes ?? []) pressedNotes.add(note);
   const stopAll = useCallback(() => {
@@ -158,7 +159,7 @@ export default function PianoApp() {
       engine.current.setVolume(volume / 100);
       engine.current.setMuted(muted);
     }
-    void engine.current.enable();
+    return engine.current.enable();
   }
 
   function startRecording() {
@@ -249,7 +250,7 @@ export default function PianoApp() {
             <div className="piano-lid" aria-hidden="true" />
             <div className="fallboard">
               <h1>{PIANO_TITLE}</h1>
-              {audio.status !== 'ready' && <button className="sound-activation" type="button" onClick={enableSound} disabled={audio.status === 'loading'}>
+              {audio.status !== 'ready' && audio.status !== 'not-enabled' && <button className="sound-activation" type="button" onClick={enableSound} disabled={audio.status === 'loading'}>
                 {{ 'not-enabled': 'Enable sound', loading: 'Loading piano…', failed: 'Retry sound', suspended: 'Resume sound' }[audio.status]}
               </button>}
               {audio.status === 'loading' && <progress aria-label="Piano samples loaded" value={audio.loaded} max={soundbank.samples.length} />}
@@ -263,7 +264,7 @@ export default function PianoApp() {
         )}
       </section>
       <p className="visually-hidden" role="status">
-        {{ 'not-enabled': 'Enable sound to load the grand piano.', loading: 'Loading piano', ready: 'Sound ready', failed: 'Sound could not load. Retry, or use a browser with Web Audio support.', suspended: 'Sound interrupted. Resume when you are ready.' }[audio.status]}
+        {{ 'not-enabled': 'Play a key to start the grand piano.', loading: 'Loading piano', ready: 'Sound ready', failed: 'Sound could not load. Retry, or use a browser with Web Audio support.', suspended: 'Sound interrupted. Resume when you are ready.' }[audio.status]}
       </p>
       {recording && <span className="visually-hidden recording-status" role="status">Recording musical events</span>}
       {replaying && <span className="visually-hidden recording-status" role="status">Replaying recording</span>}
@@ -317,7 +318,10 @@ export default function PianoApp() {
                 onClick={() => input.setLatched(!input.latched)}>{input.sustain ? 'Sustain on' : 'Sustain off'}</button>
               <button className="record-button" type="button" aria-pressed={recording}
                 disabled={replaying || (Boolean(draft) && !recording)} onClick={recording ? stopAll : startRecording}>{recording ? 'Stop recording' : 'Record'}</button>
-            </> : <p>Close this panel and use the sound button on the piano to begin or resume.</p>}
+            </> : <>
+              {audio.status === 'not-enabled' && <button type="button" onClick={enableSound}>Enable sound</button>}
+              <p>Play a key to start sound. Retry and resume controls appear on the piano when needed.</p>
+            </>}
             <button className="stop-all-button" type="button" onClick={stopAll}>Stop all</button>
           </div>
         </section>
@@ -353,12 +357,12 @@ export default function PianoApp() {
           <h2 id="help-title" ref={helpTitle} tabIndex={-1}>Playing {PIANO_TITLE}</h2>
           <p>Use Lower octave and Higher octave to explore the piano from A0 to C8.</p>
           <p>Open the gear for sound, sustain, metronome, recording, saved takes and Help. Close with the X, Escape, or a tap outside the panel.</p>
-          <p>Enable sound, then click or touch keys. Drag across the keyboard to slide between notes. Focus the piano to use physical US-position shortcuts, or use the arrow keys and hold Enter to audition a note.</p>
+          <p>Click or touch a key to start sound automatically. The first play loads the piano; a key you keep held will sound when ready. Released keys stay silent. Drag across the keyboard to slide between notes. Focus the piano to use physical US-position shortcuts, or use the arrow keys and hold Enter to audition a note.</p>
           <p>Space is a momentary pedal while the piano has focus. Latch sustain keeps the pedal down until switched off. Stop all or Escape clears notes and both pedal states. Leaving the page, changing range, or losing focus also releases notes.</p>
           <p>After enabling sound, switch Metronome on and adjust Tempo from 40 to 240 BPM. The four numbers mark the beat; beat one has a higher click. Mute silences the piano and click while the beat keeps running. Stop all, Help/Recordings navigation or an interruption stops the metronome; it does not restart automatically. Opening Settings keeps transport controls available.</p>
           <p>Volume, note names, shortcut hints and tempo are saved in this browser when storage is available. Sound activation, mute, sustain and running transport reset on reload. Compact mode lasts only until reload.</p>
           <p>On a small screen, turn your phone sideways for larger keys. If rotation is locked, choose Use compact keyboard on the Play screen. This choice lasts until you reload; landscape automatically restores the larger range. If keys cannot fit, zoom out or use a wider window. Settings opens over the instrument without resizing it.</p>
-          <p>Enable sound to load the grand piano. Record captures note ownership and sustain events, then keeps an unsaved draft until you save or discard it.</p>
+          <p>You can also enable sound from Controls. Record captures note ownership and sustain events, then keeps an unsaved draft until you save or discard it.</p>
           <p>Replay follows the recorded audio-clock timing, disables live keys, and can be cancelled with Stop all. Tempo does not change replay speed.</p>
           <p>Sound: <a href={soundbank.sourceUrl}>{soundbank.title}</a> by {soundbank.author}, licensed under <a href={soundbank.licenseUrl}>{soundbank.license}</a>. The web bank selects 16 samples and caps long tails at 12 seconds with a short fade.</p>
         </section>

@@ -1,3 +1,4 @@
+import { enableSound } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test.use({ hasTouch: true, isMobile: true });
@@ -34,7 +35,7 @@ test('reduced motion presents the landscape phone without animation', async ({ p
 test('touch piano suppresses the browser tap overlay while retaining its pressed feedback', async ({ page }) => {
   await page.setViewportSize({ width: 838, height: 286 });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
   const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
   await expect(keyboard).toHaveCSS('-webkit-tap-highlight-color', 'rgba(0, 0, 0, 0)');
