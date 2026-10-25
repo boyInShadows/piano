@@ -131,6 +131,35 @@ h2 {
 .empty-state {
   margin-top: 32px;
 }
+.recording-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+.recording-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #d7d5ce;
+  background: var(--surface);
+}
+.recording-item h3,
+.recording-item p {
+  margin: 0;
+}
+.recording-item p {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.recording-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .piano-cabinet {
   padding: 0 16px;
   border: 1px solid #151718;
@@ -356,6 +385,7 @@ progress {
   .recording-draft p {
     margin-top: 0;
   }
+
   .app-bar {
     flex-wrap: wrap;
     gap: 12px;

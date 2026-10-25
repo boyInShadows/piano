@@ -5,6 +5,7 @@ import { PIANO_TITLE } from '../lib/pianoConfig';
 import { createAudioEngine } from '../lib/audioEngine';
 import { createPreferenceStore } from '../lib/pianoPreferences';
 import { createPerformanceRecorder } from '../lib/performanceRecording';
+import { createRecordingStore, RecordingLimitError } from '../lib/recordingStorage';
 import { usePianoInput } from '../hooks/usePianoInput';
 import { usePianoViewport } from '../hooks/usePianoViewport';
 import soundbank from '../../public/audio/piano/salamander-v1/manifest.json';
@@ -22,14 +23,26 @@ export default function PianoApp() {
   const [muted, setMuted] = useState(false);
   const [recording, setRecording] = useState(false);
   const [draft, setDraft] = useState(null);
+  const [savedRecordings, setSavedRecordings] = useState([]);
+  const [storageStatus, setStorageStatus] = useState('loading');
+  const [storageMessage, setStorageMessage] = useState('');
+  const [storageBusy, setStorageBusy] = useState(false);
   const metronome = audio.metronome ?? { running: false, beat: 0 };
   const replaying = audio.replay?.running ?? false;
   const engine = useRef(null);
   const takeNumber = useRef(1);
   const recorder = useRef(null);
+  const storage = useRef(null);
+  function persistFinalizedDraft(nextDraft) {
+    if (!storage.current) return;
+    void storage.current.saveDraft(nextDraft).catch((error) => {
+      setStorageStatus('failed');
+      setStorageMessage(`Draft not stored — ${error.message}`);
+    });
+  }
   recorder.current ??= createPerformanceRecorder({
     bankId: soundbank.id,
-    onLimit: (limitedDraft) => { setDraft(limitedDraft); setRecording(false); },
+    onLimit: (limitedDraft) => { setDraft(limitedDraft); setRecording(false); persistFinalizedDraft(limitedDraft); },
   });
   const recordEvent = useCallback((event) => {
     recorder.current?.record(event, engine.current?.now() ?? 0);
@@ -38,7 +51,10 @@ export default function PianoApp() {
     if (!recorder.current?.isRecording()) return null;
     const nextDraft = recorder.current.stop(engine.current?.now() ?? 0);
     setRecording(false);
-    if (nextDraft) setDraft(nextDraft);
+    if (nextDraft) {
+      setDraft(nextDraft);
+      persistFinalizedDraft(nextDraft);
+    }
     return nextDraft;
   }, []);
   const { stopAll: releaseInputs, ...input } = usePianoInput(engine, recordEvent, finishRecording);
@@ -50,6 +66,33 @@ export default function PianoApp() {
   }, [finishRecording, releaseInputs]);
   const playArea = useRef(null);
   const viewport = usePianoViewport(playArea, stopAll);
+  const loadRecordings = useCallback(async () => {
+    if (!storage.current) throw new Error('Saved recordings are still loading.');
+    const next = await storage.current.list();
+    setSavedRecordings(next);
+    return next;
+  }, []);
+  useEffect(() => {
+    const store = createRecordingStore();
+    let active = true;
+    storage.current = store;
+    Promise.all([loadRecordings(), store.loadDraft()]).then(([, storedDraft]) => {
+      if (active) {
+        if (storedDraft) setDraft(storedDraft);
+        setStorageStatus('ready');
+      }
+    }).catch((error) => {
+      if (active) {
+        setStorageStatus('failed');
+        setStorageMessage(error.message);
+      }
+    });
+    return () => {
+      active = false;
+      store.close();
+      storage.current = null;
+    };
+  }, [loadRecordings]);
   const [compactChoice, setCompactChoice] = useState(false);
   const compact = compactChoice && viewport.portrait && viewport.width < 600;
   // Reserve the minimum key surface plus the cabinet and controls at each layout.
@@ -88,9 +131,64 @@ export default function PianoApp() {
   }
 
   function replayDraft() {
-    if (!draft || recording || replaying) return;
+    replayRecording(draft);
+  }
+
+  function replayRecording(recordingToPlay) {
+    if (!recordingToPlay || recording || replaying) return;
     stopAll();
-    if (engine.current?.startReplay(draft)) setView('Play');
+    if (engine.current?.startReplay(recordingToPlay)) setView('Play');
+  }
+
+  async function saveDraft() {
+    if (!draft || storageBusy || !storage.current) return;
+    setStorageBusy(true);
+    setStorageStatus('saving');
+    setStorageMessage('');
+    try {
+      await storage.current.save(draft);
+      let message = 'Saved on this device.';
+      try { await storage.current.clearDraft(); } catch (error) { message = `Saved on this device, but draft cleanup failed — ${error.message}`; }
+      recorder.current.discard();
+      setDraft(null);
+      setStorageStatus('ready');
+      setStorageMessage(message);
+      try { await loadRecordings(); } catch { setStorageMessage('Saved on this device. Reopen Recordings to refresh the list.'); }
+    } catch (error) {
+      setStorageStatus('failed');
+      setStorageMessage(error instanceof RecordingLimitError
+        ? 'The recording library is full. Delete a take before saving this draft.'
+        : `Recording not saved — ${error.message}`);
+    } finally {
+      setStorageBusy(false);
+    }
+  }
+
+  async function deleteRecording(recordingToDelete) {
+    if (storageBusy || !storage.current || !window.confirm(`Delete ${recordingToDelete.title}?`)) return;
+    setStorageBusy(true);
+    setStorageStatus('deleting');
+    setStorageMessage('');
+    try {
+      await storage.current.delete(recordingToDelete.id);
+      await loadRecordings();
+      setStorageStatus('ready');
+      setStorageMessage(`${recordingToDelete.title} deleted.`);
+    } catch (error) {
+      setStorageStatus('failed');
+      setStorageMessage(`Recording not deleted — ${error.message}`);
+    } finally {
+      setStorageBusy(false);
+    }
+  }
+
+  function discardDraft() {
+    recorder.current.discard();
+    setDraft(null);
+    void storage.current?.clearDraft().catch((error) => {
+      setStorageStatus('failed');
+      setStorageMessage(`Draft not cleared — ${error.message}`);
+    });
   }
 
   return (
@@ -197,13 +295,27 @@ export default function PianoApp() {
         <h2 id="recordings-title">Your recordings</h2>
         {recording && <p role="status">Recording in progress. Return to Play and choose Stop recording when finished.</p>}
         {replaying && <p role="status">Replaying recording. Live piano input is disabled until playback ends.</p>}
+        {storageMessage && <p role="status">{storageMessage}</p>}
+        {storageStatus === 'loading' && <p role="status">Loading saved recordings…</p>}
         {draft ? <div className="recording-draft" data-event-count={draft.events.length}>
           <h3>Unsaved draft: {draft.title}</h3>
           <p>{draft.events.length} musical events, {draft.duration.toFixed(2)} seconds.</p>
           <button type="button" disabled={replaying} onClick={replayDraft}>Replay</button>
-          <button type="button" onClick={() => { recorder.current.discard(); setDraft(null); }}>Discard draft</button>
+          <button type="button" disabled={storageBusy || storageStatus === 'loading'} onClick={saveDraft}>{storageStatus === 'saving' ? 'Saving…' : storageStatus === 'failed' ? 'Retry save' : 'Save'}</button>
+          <button type="button" onClick={discardDraft}>Discard draft</button>
           {replaying && <button type="button" onClick={stopAll}>Stop playback</button>}
-        </div> : <p className="empty-state">No saved recordings yet.</p>}
+        </div> : savedRecordings.length === 0 && storageStatus !== 'loading' ? <p className="empty-state">No saved recordings yet.</p> : null}
+        {savedRecordings.length > 0 && <ul className="recording-list">
+          {savedRecordings.map((saved) => (
+            <li key={saved.id} className="recording-item">
+              <div><h3>{saved.title}</h3><p>{new Date(saved.createdAt).toLocaleString()} · {saved.duration.toFixed(2)} seconds</p></div>
+              <div className="recording-actions">
+                <button type="button" disabled={recording || replaying} onClick={() => replayRecording(saved)}>Replay</button>
+                <button type="button" disabled={storageBusy || replaying} onClick={() => deleteRecording(saved)}>Delete</button>
+              </div>
+            </li>
+          ))}
+        </ul>}
         <p>Recordings will stay in this browser.</p>
         <p>Clearing site data will remove saved recordings. There is no cloud sync.</p>
       </section>
