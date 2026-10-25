@@ -100,17 +100,35 @@ export default function PianoApp() {
     };
   }, [loadRecordings]);
   useEffect(() => {
+    const panel = settingsPanel.current;
+    const nativePopover = typeof panel?.showPopover === 'function';
     if (settingsOpen) {
-      settingsPanel.current?.showPopover();
+      if (nativePopover) panel.showPopover();
+      else panel?.setAttribute('data-fallback-open', '');
       settingsTitle.current?.focus();
     } else {
-      if (settingsPanel.current?.matches(':popover-open')) settingsPanel.current.hidePopover();
+      if (nativePopover && panel.matches(':popover-open')) panel.hidePopover();
+      panel?.removeAttribute('data-fallback-open');
       if (settingsWasOpen.current) {
         if (recorder.current?.isRecording()) playArea.current?.querySelector('.key-viewport')?.focus();
         else settingsButton.current?.focus();
       }
     }
     settingsWasOpen.current = settingsOpen;
+    if (!settingsOpen || nativePopover) return;
+    const dismiss = (event) => {
+      if (event.type === 'keydown') {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+      } else if (panel.contains(event.target) || settingsButton.current?.contains(event.target)) return;
+      setSettingsOpen(false);
+    };
+    document.addEventListener('keydown', dismiss);
+    document.addEventListener('click', dismiss);
+    return () => {
+      document.removeEventListener('keydown', dismiss);
+      document.removeEventListener('click', dismiss);
+    };
   }, [settingsOpen]);
   useEffect(() => {
     if (view === 'Recordings') recordingsTitle.current?.focus();
@@ -235,6 +253,7 @@ export default function PianoApp() {
                 {{ 'not-enabled': 'Enable sound', loading: 'Loading piano…', failed: 'Retry sound', suspended: 'Resume sound' }[audio.status]}
               </button>}
               {audio.status === 'loading' && <progress aria-label="Piano samples loaded" value={audio.loaded} max={soundbank.samples.length} />}
+              {audio.status === 'failed' && <p className="sound-error">Sound could not start. Try again.</p>}
             </div>
             <PianoKeyboard compact={compact} onCompact={!compact && viewport.portrait && viewport.width < 600 ? chooseCompact : undefined}
               showNotes={showNotes} showShortcuts={showShortcuts} ready={audio.status === 'ready'} disabled={replaying} pressedNotes={pressedNotes}

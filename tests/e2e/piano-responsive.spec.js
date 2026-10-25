@@ -43,6 +43,8 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   await expect(page.locator('.piano-key')).toHaveCount(25);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('.piano-key')).toHaveCount(12);
+  await expect(page.locator('.play-layout')).toHaveCSS('height', '844px');
+  await assertGeometry(page, { width: 390, height: 844 }, testInfo);
   await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
