@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createNoteController } from '../../src/lib/pianoInput.js';
 
-function setup() {
+function setup(onEvent = () => {}) {
   const events = [];
   const states = [];
   const audio = {
@@ -11,7 +11,7 @@ function setup() {
     setSustain: (value) => events.push(['sustain', value]),
     stopAll: () => events.push(['stop']),
   };
-  return { events, states, audio, input: createNoteController(audio, (state) => states.push(state)) };
+  return { events, states, audio, input: createNoteController(audio, (state) => states.push(state), onEvent) };
 }
 
 test('two owners share one attack and only the final release stops it, in either order', () => {
@@ -71,4 +71,22 @@ test('a rejected attack never acquires a false owner or emits a later release', 
   assert.equal(input.press('key:KeyA', 60), false);
   input.release('key:KeyA');
   assert.deepEqual(events, []);
+});
+
+test('emits one recording event per audible ownership and effective sustain transition', () => {
+  const recorded = [];
+  const { input } = setup((event) => recorded.push(event));
+  input.press('key:KeyA', 60);
+  input.press('pointer:2', 60);
+  input.setLatched(true);
+  input.release('key:KeyA');
+  input.release('pointer:2');
+  input.setLatched(false);
+
+  assert.deepEqual(recorded, [
+    { kind: 'note-on', note: 60, velocity: 0.72 },
+    { kind: 'sustain', value: true },
+    { kind: 'note-off', note: 60 },
+    { kind: 'sustain', value: false },
+  ]);
 });

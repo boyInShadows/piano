@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { PIANO_TITLE } from '../lib/pianoConfig';
 import { createAudioEngine } from '../lib/audioEngine';
 import { createPreferenceStore } from '../lib/pianoPreferences';
+import { createPerformanceRecorder } from '../lib/performanceRecording';
 import { usePianoInput } from '../hooks/usePianoInput';
 import { usePianoViewport } from '../hooks/usePianoViewport';
 import soundbank from '../../public/audio/piano/salamander-v1/manifest.json';
@@ -19,11 +20,33 @@ export default function PianoApp() {
   const { volume, showNotes, showShortcuts, bpm } = preferences;
   const [audio, setAudio] = useState({ status: 'not-enabled', loaded: 0 });
   const [muted, setMuted] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [draft, setDraft] = useState(null);
   const metronome = audio.metronome ?? { running: false, beat: 0 };
   const engine = useRef(null);
-  const input = usePianoInput(engine);
+  const takeNumber = useRef(1);
+  const recorder = useRef(null);
+  recorder.current ??= createPerformanceRecorder({
+    bankId: soundbank.id,
+    onLimit: (limitedDraft) => { setDraft(limitedDraft); setRecording(false); },
+  });
+  const recordEvent = useCallback((event) => {
+    recorder.current?.record(event, engine.current?.now() ?? 0);
+  }, []);
+  const finishRecording = useCallback(() => {
+    if (!recorder.current?.isRecording()) return null;
+    const nextDraft = recorder.current.stop(engine.current?.now() ?? 0);
+    setRecording(false);
+    if (nextDraft) setDraft(nextDraft);
+    return nextDraft;
+  }, []);
+  const { stopAll: releaseInputs, ...input } = usePianoInput(engine, recordEvent, finishRecording);
+  const stopAll = useCallback(() => {
+    finishRecording();
+    releaseInputs();
+  }, [finishRecording, releaseInputs]);
   const playArea = useRef(null);
-  const viewport = usePianoViewport(playArea, input.stopAll);
+  const viewport = usePianoViewport(playArea, stopAll);
   const [compactChoice, setCompactChoice] = useState(false);
   const compact = compactChoice && viewport.portrait && viewport.width < 600;
   // Reserve the minimum key surface plus the cabinet and controls at each layout.
@@ -33,25 +56,32 @@ export default function PianoApp() {
   const gated = (viewport.rotate && !compact) || viewport.availableHeight < minimumHeight;
 
   function chooseCompact() {
-    input.stopAll();
+    stopAll();
     setCompactChoice(true);
   }
 
   useEffect(() => () => {
+    finishRecording();
     engine.current?.dispose();
     engine.current = null;
-  }, []);
+  }, [finishRecording]);
 
   function enableSound() {
     if (!engine.current) {
       engine.current = createAudioEngine((next) => {
-        if (next.status === 'failed' || next.status === 'suspended') input.stopAll();
+        if (next.status === 'failed' || next.status === 'suspended') stopAll();
         setAudio(next);
       });
       engine.current.setVolume(volume / 100);
       engine.current.setMuted(muted);
     }
     void engine.current.enable();
+  }
+
+  function startRecording() {
+    if (audio.status !== 'ready' || draft || recorder.current?.isRecording()) return;
+    releaseInputs();
+    if (recorder.current.start(engine.current?.now() ?? 0, false, `Take ${takeNumber.current++}`)) setRecording(true);
   }
 
   return (
@@ -65,7 +95,7 @@ export default function PianoApp() {
               type="button"
               aria-current={view === label ? 'page' : undefined}
               onClick={() => {
-                input.stopAll();
+                stopAll();
                 setView(label);
                 setSettingsOpen(false);
               }}
@@ -79,7 +109,7 @@ export default function PianoApp() {
           type="button"
           aria-expanded={settingsOpen}
           aria-controls="piano-settings"
-          onClick={() => { input.stopAll(); setSettingsOpen(!settingsOpen); }}
+          onClick={() => { stopAll(); setSettingsOpen(!settingsOpen); }}
         >
           Settings
         </button>
@@ -106,7 +136,7 @@ export default function PianoApp() {
           setMuted(!muted);
           engine.current?.setMuted(!muted);
         }}>{muted ? 'Unmute' : 'Mute'}</button>
-        {compactChoice && <button type="button" onClick={() => { input.stopAll(); setCompactChoice(false); }}>Use landscape-first layout</button>}
+        {compactChoice && <button type="button" onClick={() => { stopAll(); setCompactChoice(false); }}>Use landscape-first layout</button>}
         <p>Shortcut labels use US keyboard positions.</p>
         {preferenceError && <p role="status">{preferenceError}</p>}
       </section>
@@ -122,7 +152,7 @@ export default function PianoApp() {
                 showNotes={showNotes} showShortcuts={showShortcuts}
                 ready={audio.status === 'ready'} pressedNotes={input.notes}
                 onPress={input.press} onMove={input.move} onRelease={input.release}
-                onMomentary={input.setMomentary} onStopAll={input.stopAll}
+                onMomentary={input.setMomentary} onStopAll={stopAll}
               />
               <div className="front-rail" aria-hidden="true" />
             </div>
@@ -143,8 +173,10 @@ export default function PianoApp() {
                 }}
                 onTempo={(value) => { preferenceStore.update({ bpm: value }); engine.current.setTempo(value); }} />}
               {audio.status === 'ready' && <button type="button" aria-label="Latch sustain" aria-pressed={input.latched} onClick={() => input.setLatched(!input.latched)}>{input.sustain ? 'Sustain on' : 'Sustain off'}</button>}
+              {audio.status === 'ready' && <button className="record-button" type="button" aria-pressed={recording} disabled={Boolean(draft) && !recording} onClick={recording ? stopAll : startRecording}>{recording ? 'Stop recording' : 'Record'}</button>}
+              {recording && <span className="recording-status" role="status">Recording musical events</span>}
               <span className="pedal-status">{input.sustain ? 'Pedal on' : 'Pedal off'}</span>
-              <button type="button" onClick={input.stopAll}>Stop all</button>
+              <button className="stop-all-button" type="button" onClick={stopAll}>Stop all</button>
             </div>
           </>}
         </div>
@@ -153,7 +185,12 @@ export default function PianoApp() {
 
       <section className="content-panel" hidden={view !== 'Recordings'} aria-labelledby="recordings-title">
         <h2 id="recordings-title">Your recordings</h2>
-        <p className="empty-state">No recordings yet.</p>
+        {recording && <p role="status">Recording in progress. Return to Play and choose Stop recording when finished.</p>}
+        {draft ? <div className="recording-draft" data-event-count={draft.events.length}>
+          <h3>Unsaved draft: {draft.title}</h3>
+          <p>{draft.events.length} musical events, {draft.duration.toFixed(2)} seconds.</p>
+          <button type="button" onClick={() => { recorder.current.discard(); setDraft(null); }}>Discard draft</button>
+        </div> : <p className="empty-state">No saved recordings yet.</p>}
         <p>Recordings will stay in this browser.</p>
         <p>Clearing site data will remove saved recordings. There is no cloud sync.</p>
       </section>
@@ -167,7 +204,7 @@ export default function PianoApp() {
         <p>After enabling sound, switch Metronome on and adjust Tempo from 40 to 240 BPM. The four numbers mark the beat; beat one has a higher click. Mute silences the piano and click while the beat keeps running. Stop all, navigation, Settings or an interruption stops the metronome; it does not restart automatically.</p>
         <p>Volume, note names, shortcut hints and tempo are saved in this browser when storage is available. Sound activation, mute, sustain and running transport reset on reload. Compact mode lasts only until reload.</p>
         <p>On a small screen, turn your phone sideways for larger keys. If rotation is locked, choose Use compact keyboard on the Play screen. This choice lasts until you reload; landscape automatically restores the larger range. If keys cannot fit, close Settings, zoom out or use a wider window.</p>
-        <p>Enable sound to load the grand piano. Recording is being prepared.</p>
+        <p>Enable sound to load the grand piano. Record captures note ownership and sustain events, then keeps an unsaved draft until saving is implemented.</p>
         <p>Sound: <a href={soundbank.sourceUrl}>{soundbank.title}</a> by {soundbank.author}, licensed under <a href={soundbank.licenseUrl}>{soundbank.license}</a>. The web bank selects 16 samples and caps long tails at 12 seconds with a short fade.</p>
       </section>
     </main>

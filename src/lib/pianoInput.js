@@ -1,6 +1,6 @@
 import { getNoteName } from './pianoNotes.js';
 
-export function createNoteController(audio, onChange) {
+export function createNoteController(audio, onChange, onEvent = () => {}) {
   const sources = new Map();
   const owners = new Map();
   let latched = false;
@@ -18,6 +18,7 @@ export function createNoteController(audio, onChange) {
     if (!held.size) {
       owners.delete(midi);
       audio.release(midi);
+      onEvent({ kind: 'note-off', note: midi });
     }
   }
 
@@ -28,10 +29,12 @@ export function createNoteController(audio, onChange) {
     releasePitch(source);
     sources.set(source, null);
     if (midi !== null) {
-      if (!owners.has(midi) && audio.attack(midi) === false) { publish(); return false; }
+      const firstOwner = !owners.has(midi);
+      if (firstOwner && audio.attack(midi) === false) { publish(); return false; }
       sources.set(source, midi);
       if (!owners.has(midi)) owners.set(midi, new Set());
       owners.get(midi).add(source);
+      if (firstOwner) onEvent({ kind: 'note-on', note: midi, velocity: 0.72 });
     }
     publish();
     return true;
@@ -55,7 +58,10 @@ export function createNoteController(audio, onChange) {
     const before = latched || momentary;
     if (kind === 'latch') latched = Boolean(value);
     else momentary = Boolean(value);
-    if (before !== (latched || momentary)) audio.setSustain(latched || momentary);
+    if (before !== (latched || momentary)) {
+      audio.setSustain(latched || momentary);
+      onEvent({ kind: 'sustain', value: latched || momentary });
+    }
     publish();
   }
 

@@ -123,6 +123,36 @@ test('sustain, range changes, focus loss and typing guards preserve safe note st
   await page.keyboard.up('d');
 });
 
+test('records ownership and sustain transitions into a retained unsaved draft', async ({ page }) => {
+  await page.getByRole('button', { name: 'Record', exact: true }).click();
+  await page.getByRole('button', { name: 'Metronome', exact: true }).click();
+  const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
+  await keyboard.focus();
+  await page.keyboard.down('a');
+  await page.keyboard.down('d');
+  await page.keyboard.up('d');
+  await page.getByRole('button', { name: 'Latch sustain', exact: true }).click();
+  await page.keyboard.up('a');
+  await page.getByRole('button', { name: 'Stop recording', exact: true }).click();
+  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+
+  const draft = page.locator('.recording-draft');
+  await expect(draft).toContainText('Unsaved draft: Take 1');
+  expect(Number(await draft.getAttribute('data-event-count'))).toBe(6);
+  await expect(draft.getByRole('button', { name: 'Discard draft', exact: true })).toBeVisible();
+});
+
+test('finalizes a recording draft when the page loses focus', async ({ page }) => {
+  await page.getByRole('button', { name: 'Record', exact: true }).click();
+  await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
+  await page.keyboard.down('a');
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await page.keyboard.up('a');
+  await page.getByRole('button', { name: 'Recordings', exact: true }).click();
+
+  await expect(page.locator('.recording-draft')).toContainText('Unsaved draft: Take 1');
+});
+
 test('every piano pitch dispatches a finite repitched source', async ({ page }, testInfo) => {
   const lower = page.getByRole('button', { name: 'Lower octave' });
   for (let step = 0; step < 8 && await lower.isEnabled(); step += 1) await lower.click();

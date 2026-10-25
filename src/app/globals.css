@@ -338,6 +338,24 @@ progress {
     width: calc(100% - 24px);
     margin: 24px auto;
   }
+
+  .recording-status {
+    color: var(--accent);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .recording-draft {
+    margin: 24px 0;
+    padding: 16px;
+    border: 1px solid #d7d5ce;
+    background: #f4f1e8;
+  }
+
+  .recording-draft h3,
+  .recording-draft p {
+    margin-top: 0;
+  }
   .app-bar {
     flex-wrap: wrap;
     gap: 12px;
@@ -429,14 +447,19 @@ progress {
     display: none;
   }
   .audio-controls {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 4px;
     margin: 0;
   }
+  .audio-controls > p,
+  .audio-controls > .metronome-control,
+  .audio-controls > .stop-all-button { grid-column: 1 / -1; }
+  .audio-controls > .record-button { grid-column: 2; }
   .audio-controls p { flex: 0; font-size: 0.75rem; line-height: 1.5; }
-  .audio-controls button { padding: 8px; }
+  .audio-controls button { min-width: 0; padding: 8px 4px; font-size: 0.75rem; }
   .metronome-control { display: grid; gap: 4px; }
   .audio-controls .metronome-button { padding: 4px 8px; }
   .preview-status, .pedal-status { display: none; }
