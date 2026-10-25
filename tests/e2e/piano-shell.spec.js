@@ -20,12 +20,16 @@ test('serves the selected piano shell and navigates without browser errors', asy
   await page.screenshot({ path: testInfo.outputPath('desktop-clean.png'), fullPage: true });
   await page.getByRole('button', { name: 'Recordings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your recordings' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your recordings' })).toBeFocused();
   await page.getByRole('button', { name: 'Help', exact: true }).click();
   await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeFocused();
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Keyboard settings' })).toBeFocused();
   await page.getByRole('checkbox', { name: 'Show note names' }).check();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
   await expect(page.getByRole('checkbox', { name: 'Show note names' })).toBeHidden();
   await expect(page.getByRole('button', { name: 'C4', exact: true }).getByText('C4')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('desktop.png'), fullPage: true });

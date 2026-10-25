@@ -2,7 +2,7 @@
 
 A browser piano based on a restrained polished-black acoustic instrument. V1 scope is free play, sustain, a metronome, and recording/replay saved in this browser. The owner name is fixed in V1.
 
-The piano is playable on `development`: sampled A0–C8 notes, physical-keyboard chords, mouse/pen/touch input, glissando, sustain, volume/mute, a 4/4 metronome, saved preferences, and Stop all. The selected polished-black shell includes adaptive note windows, range navigation, Help/Recordings views and label settings. Narrow touch phones show rotation guidance with an optional compact keyboard; short landscape screens keep the playing controls beside the keys. Recording, replay and the recording library remain pending.
+The piano is playable on `development`: sampled A0–C8 notes, physical-keyboard chords, mouse/pen/touch input, glissando, sustain, volume/mute, a 4/4 metronome, saved preferences, Stop all, and browser-local recording/replay with an explicit recording library. The selected polished-black shell includes adaptive note windows, range navigation, Help/Recordings views and label settings. Narrow touch phones show rotation guidance with an optional compact keyboard; short landscape screens keep the playing controls beside the keys.
 
 Choose **Enable sound**, then click/touch the keys or focus the piano and use physical US-position shortcuts `A W S E D F T G Y H U J K O L P ;`. Hold Space for momentary sustain, use Latch sustain for a held pedal, and press Escape or Stop all to clear notes. Arrow keys move focus between piano keys; Enter auditions the focused note. Range changes, blur, hidden pages and audio interruptions clear ownership so old notes cannot restart automatically.
 

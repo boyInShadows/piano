@@ -123,6 +123,22 @@ test('sustain, range changes, focus loss and typing guards preserve safe note st
   await page.keyboard.up('d');
 });
 
+test('Enter auditions the focused key and releases on keyup or interruption', async ({ page }) => {
+  const keyboard = page.getByRole('group', { name: 'Piano keyboard', exact: true });
+  await keyboard.focus();
+  await page.keyboard.press('ArrowRight');
+  const focusedKey = page.locator(':focus[data-midi]');
+  await expect(focusedKey).toHaveAttribute('aria-label', 'C#4');
+  await page.keyboard.down('Enter');
+  await expect(focusedKey).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.up('Enter');
+  await expect(focusedKey).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.down('Enter');
+  await expect(focusedKey).toHaveAttribute('aria-pressed', 'true');
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
+});
+
 test('records ownership and sustain transitions into a retained unsaved draft', async ({ page }) => {
   await page.getByRole('button', { name: 'Record', exact: true }).click();
   await page.getByRole('button', { name: 'Metronome', exact: true }).click();

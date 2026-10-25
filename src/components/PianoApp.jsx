@@ -33,6 +33,11 @@ export default function PianoApp() {
   const takeNumber = useRef(1);
   const recorder = useRef(null);
   const storage = useRef(null);
+  const settingsButton = useRef(null);
+  const settingsTitle = useRef(null);
+  const settingsWasOpen = useRef(false);
+  const recordingsTitle = useRef(null);
+  const helpTitle = useRef(null);
   function persistFinalizedDraft(nextDraft) {
     if (!storage.current) return;
     void storage.current.saveDraft(nextDraft).catch((error) => {
@@ -93,6 +98,15 @@ export default function PianoApp() {
       storage.current = null;
     };
   }, [loadRecordings]);
+  useEffect(() => {
+    if (settingsOpen) settingsTitle.current?.focus();
+    else if (settingsWasOpen.current) settingsButton.current?.focus();
+    settingsWasOpen.current = settingsOpen;
+  }, [settingsOpen]);
+  useEffect(() => {
+    if (view === 'Recordings') recordingsTitle.current?.focus();
+    if (view === 'Help') helpTitle.current?.focus();
+  }, [view]);
   const [compactChoice, setCompactChoice] = useState(false);
   const compact = compactChoice && viewport.portrait && viewport.width < 600;
   // Reserve the minimum key surface plus the cabinet and controls at each layout.
@@ -213,6 +227,7 @@ export default function PianoApp() {
         </nav>
         <button
           className="settings-button"
+          ref={settingsButton}
           type="button"
           aria-expanded={settingsOpen}
           aria-controls="piano-settings"
@@ -223,7 +238,7 @@ export default function PianoApp() {
       </header>
 
       <section id="piano-settings" className="settings-panel" hidden={!settingsOpen} aria-labelledby="settings-title">
-        <h2 id="settings-title">Keyboard settings</h2>
+        <h2 id="settings-title" ref={settingsTitle} tabIndex={-1}>Keyboard settings</h2>
         <label className="hint-setting">
           <input type="checkbox" checked={showNotes} onChange={(event) => preferenceStore.update({ showNotes: event.target.checked })} />
           <span>Show note names</span>
@@ -292,7 +307,7 @@ export default function PianoApp() {
       </section>
 
       <section className="content-panel" hidden={view !== 'Recordings'} aria-labelledby="recordings-title">
-        <h2 id="recordings-title">Your recordings</h2>
+        <h2 id="recordings-title" ref={recordingsTitle} tabIndex={-1}>Your recordings</h2>
         {recording && <p role="status">Recording in progress. Return to Play and choose Stop recording when finished.</p>}
         {replaying && <p role="status">Replaying recording. Live piano input is disabled until playback ends.</p>}
         {storageMessage && <p role="status">{storageMessage}</p>}
@@ -321,7 +336,7 @@ export default function PianoApp() {
       </section>
 
       <section className="content-panel" hidden={view !== 'Help'} aria-labelledby="help-title">
-        <h2 id="help-title">Playing {PIANO_TITLE}</h2>
+        <h2 id="help-title" ref={helpTitle} tabIndex={-1}>Playing {PIANO_TITLE}</h2>
         <p>Use Lower octave and Higher octave to explore the piano from A0 to C8.</p>
         <p>Open Settings to show note names or US-position keyboard shortcuts.</p>
         <p>Enable sound, then click or touch keys. Drag across the keyboard to slide between notes. Focus the piano to use physical US-position shortcuts, or use the arrow keys and hold Enter to audition a note.</p>
@@ -329,7 +344,7 @@ export default function PianoApp() {
         <p>After enabling sound, switch Metronome on and adjust Tempo from 40 to 240 BPM. The four numbers mark the beat; beat one has a higher click. Mute silences the piano and click while the beat keeps running. Stop all, navigation, Settings or an interruption stops the metronome; it does not restart automatically.</p>
         <p>Volume, note names, shortcut hints and tempo are saved in this browser when storage is available. Sound activation, mute, sustain and running transport reset on reload. Compact mode lasts only until reload.</p>
         <p>On a small screen, turn your phone sideways for larger keys. If rotation is locked, choose Use compact keyboard on the Play screen. This choice lasts until you reload; landscape automatically restores the larger range. If keys cannot fit, close Settings, zoom out or use a wider window.</p>
-        <p>Enable sound to load the grand piano. Record captures note ownership and sustain events, then keeps an unsaved draft until saving is implemented.</p>
+        <p>Enable sound to load the grand piano. Record captures note ownership and sustain events, then keeps an unsaved draft until you save or discard it.</p>
         <p>Replay follows the recorded audio-clock timing, disables live keys, and can be cancelled with Stop all. Tempo does not change replay speed.</p>
         <p>Sound: <a href={soundbank.sourceUrl}>{soundbank.title}</a> by {soundbank.author}, licensed under <a href={soundbank.licenseUrl}>{soundbank.license}</a>. The web bank selects 16 samples and caps long tails at 12 seconds with a short fade.</p>
       </section>
