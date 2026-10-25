@@ -84,6 +84,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
       <div className="key-frame">
         <div
           className="key-viewport" ref={viewport} tabIndex={fits ? 0 : -1} role="group" aria-label="Piano keyboard"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
           onKeyDown={keyDown} onPointerDown={pointerDown}
           onPointerMove={(event) => { if (ready && !disabled && fits) onMove(`pointer:${event.pointerId}`, noteAtPoint(event)); }}
           onPointerUp={pointerEnd} onPointerCancel={pointerEnd} onLostPointerCapture={(event) => onRelease(`pointer:${event.pointerId}`)}
