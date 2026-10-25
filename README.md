@@ -35,6 +35,8 @@ The browser tests use installed Microsoft Edge (Chromium). Skip the browser-inst
 
 For a production preview, run `npm run build` followed by `npm start`. This is a local preview, not a public deployment.
 
+For phone-speaker testing with scrcpy, launch the mirror with `scrcpy --no-audio`. Its default audio mode redirects device playback to the computer and adds buffering; see the [scrcpy audio documentation](https://github.com/Genymobile/scrcpy/blob/master/doc/audio.md). Check both the phone's media volume and the piano's Settings volume when evaluating loudness. Browser-reported output latency and input-dispatch timing are diagnostic measurements, not an acoustic touch-to-speaker measurement.
+
 ### Production deployment handoff
 
 Use a normal HTTPS-capable Node host with Node 24 LTS and the committed `package-lock.json`:
