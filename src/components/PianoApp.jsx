@@ -34,6 +34,7 @@ export default function PianoApp() {
   const recorder = useRef(null);
   const storage = useRef(null);
   const settingsButton = useRef(null);
+  const settingsPanel = useRef(null);
   const settingsTitle = useRef(null);
   const settingsWasOpen = useRef(false);
   const recordingsTitle = useRef(null);
@@ -99,8 +100,13 @@ export default function PianoApp() {
     };
   }, [loadRecordings]);
   useEffect(() => {
-    if (settingsOpen) settingsTitle.current?.focus();
-    else if (settingsWasOpen.current) settingsButton.current?.focus();
+    if (settingsOpen) {
+      settingsPanel.current?.showPopover();
+      settingsTitle.current?.focus();
+    } else {
+      if (settingsPanel.current?.matches(':popover-open')) settingsPanel.current.hidePopover();
+      if (settingsWasOpen.current) settingsButton.current?.focus();
+    }
     settingsWasOpen.current = settingsOpen;
   }, [settingsOpen]);
   useEffect(() => {
@@ -225,16 +231,21 @@ export default function PianoApp() {
           className="settings-button"
           ref={settingsButton}
           type="button"
+          aria-label="Settings"
           aria-expanded={settingsOpen}
           aria-controls="piano-settings"
           onClick={() => { if (!replaying) stopAll(); setSettingsOpen(!settingsOpen); }}
         >
-          Settings
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3-.6 2.3-2 .9L4.3 5.5 2 9.5l1.8 1.6v1.8L2 14.5l2.3 4 2.1-.7 2 .9L9 21h6l.6-2.3 2-.9 2.1.7 2.3-4-1.8-1.6v-1.8L22 9.5l-2.3-4-2.1.7-2-.9L15 3Z" /><circle cx="12" cy="12" r="3" /></svg>
         </button>
       </header>
 
-      <section id="piano-settings" className="settings-panel" hidden={!settingsOpen} aria-labelledby="settings-title">
+      <section id="piano-settings" className="settings-panel" popover="auto" ref={settingsPanel}
+        onToggle={(event) => setSettingsOpen(event.newState === 'open')} aria-labelledby="settings-title">
         <h2 id="settings-title" ref={settingsTitle} tabIndex={-1}>Keyboard settings</h2>
+        <button className="close-settings" type="button" aria-label="Close settings" onClick={() => setSettingsOpen(false)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
+        </button>
         <label className="hint-setting">
           <input type="checkbox" checked={showNotes} onChange={(event) => preferenceStore.update({ showNotes: event.target.checked })} />
           <span>Show note names</span>

@@ -1,3 +1,4 @@
+import { toggleSettings } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 
@@ -125,9 +126,10 @@ test('rotation and shrinking space clear held notes and pedal without recreating
   await page.getByRole('button', { name: 'Latch sustain' }).click();
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.down('a');
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'A little more room to play' })).toBeVisible();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await toggleSettings(page);
+  await expect(page.getByRole('heading', { name: 'Keyboard settings' })).toBeVisible();
+  await expect(page.locator('.key-surface')).toBeVisible();
+  await toggleSettings(page);
   await page.keyboard.up('a');
   await expect(page.getByRole('button', { name: 'Latch sustain' })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);

@@ -1,3 +1,4 @@
+import { toggleSettings } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -89,7 +90,7 @@ test('rapid toggles, stop-all, range, focus, visibility, settings and suspension
       document.dispatchEvent(new Event('visibilitychange'));
     }),
     async () => { await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus(); await page.keyboard.press('Escape'); },
-    async () => { await page.getByRole('button', { name: 'Settings', exact: true }).click(); await page.getByRole('button', { name: 'Settings', exact: true }).click(); },
+    async () => { await toggleSettings(page); await toggleSettings(page); },
     async () => { await page.getByRole('button', { name: 'Help', exact: true }).click(); await page.getByRole('button', { name: 'Play', exact: true }).click(); },
     () => page.setViewportSize({ width: 568, height: 320 }),
   ];
@@ -130,11 +131,12 @@ test('mute silences real output while preserving the running beat and reduced mo
   await page.setViewportSize({ width: 1440, height: 1200 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await ready(page);
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await toggleSettings(page);
   const toggle = page.getByRole('button', { name: 'Metronome', exact: true });
   await expect(toggle).toBeVisible();
   await page.getByRole('slider', { name: 'Tempo', exact: true }).fill('240');
-  await toggle.click();
+  await toggle.focus();
+  await page.keyboard.press('Enter');
   expect(await peak(page, 600)).toBeGreaterThan(0.0001);
   await page.getByRole('button', { name: 'Mute', exact: true }).click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');

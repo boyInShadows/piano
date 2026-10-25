@@ -1,3 +1,4 @@
+import { toggleSettings } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 
 test('serves the selected piano shell and navigates without browser errors', async ({ page, request }, testInfo) => {
@@ -25,10 +26,10 @@ test('serves the selected piano shell and navigates without browser errors', asy
   await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeVisible();
   await expect(page.getByRole('heading', { name: "Playing Qazal's Piano" })).toBeFocused();
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await toggleSettings(page);
   await expect(page.getByRole('heading', { name: 'Keyboard settings' })).toBeFocused();
   await page.getByRole('checkbox', { name: 'Show note names' }).check();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await toggleSettings(page);
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
   await expect(page.getByRole('checkbox', { name: 'Show note names' })).toBeHidden();
   await expect(page.getByRole('button', { name: 'C4', exact: true }).getByText('C4')).toBeVisible();

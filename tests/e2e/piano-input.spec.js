@@ -1,3 +1,4 @@
+import { toggleSettings } from '../helpers/pianoUi.js';
 import { expect, test } from '@playwright/test';
 import { getNoteName } from '../../src/lib/pianoNotes.js';
 
@@ -101,11 +102,11 @@ test('sustain, range changes, focus loss and typing guards preserve safe note st
   await expect(page.getByRole('button', { name: 'Latch sustain' })).toHaveAttribute('aria-pressed', 'false');
   await page.keyboard.up('d');
   const before = await page.evaluate(() => window.pianoAudio.starts.length);
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await toggleSettings(page);
   await page.getByRole('slider', { name: 'Volume' }).focus();
   await page.keyboard.press('a');
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(before);
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await toggleSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
   await page.keyboard.press('Control+a');
   expect(await page.evaluate(() => window.pianoAudio.starts.length)).toBe(before);
