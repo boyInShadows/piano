@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 export function usePianoViewport(playArea, onStopAll) {
-  const [viewport, setViewport] = useState({ width: 0, portrait: false, rotate: false, short: false, availableHeight: 900 });
+  const [viewport, setViewport] = useState({ width: 0, portrait: false, rotate: false, availableHeight: 900, minimumHeight: 512 });
 
   useEffect(() => {
     const portrait = matchMedia('(orientation: portrait)');
@@ -22,8 +22,8 @@ export function usePianoViewport(playArea, onStopAll) {
         width: window.innerWidth,
         portrait: portrait.matches,
         rotate: portrait.matches && coarse.matches && window.innerWidth < 600,
-        short: matchMedia('(max-height: 600px) and (min-width: 500px)').matches,
         availableHeight: Math.floor(availableHeight),
+        minimumHeight: parseFloat(getComputedStyle(element).getPropertyValue('--minimum-play-height')),
       };
       if (!previous || Object.keys(next).some((key) => next[key] !== previous[key])) {
         onStopAll();

@@ -109,11 +109,7 @@ export default function PianoApp() {
   }, [view]);
   const [compactChoice, setCompactChoice] = useState(false);
   const compact = compactChoice && viewport.portrait && viewport.width < 600;
-  // Reserve the minimum key surface plus the cabinet and controls at each layout.
-  let minimumHeight = viewport.width <= 700 ? 552 : 512;
-  if (compact) minimumHeight = 396;
-  if (viewport.short) minimumHeight = 244;
-  const gated = (viewport.rotate && !compact) || viewport.availableHeight < minimumHeight;
+  const gated = (viewport.rotate && !compact) || viewport.availableHeight < viewport.minimumHeight;
 
   function chooseCompact() {
     stopAll();
@@ -296,8 +292,8 @@ export default function PianoApp() {
                 onTempo={(value) => { preferenceStore.update({ bpm: value }); engine.current.setTempo(value); }} />}
               {audio.status === 'ready' && <button type="button" aria-label="Latch sustain" aria-pressed={input.latched} disabled={replaying} onClick={() => input.setLatched(!input.latched)}>{input.sustain ? 'Sustain on' : 'Sustain off'}</button>}
               {audio.status === 'ready' && <button className="record-button" type="button" aria-pressed={recording} disabled={replaying || (Boolean(draft) && !recording)} onClick={recording ? stopAll : startRecording}>{recording ? 'Stop recording' : 'Record'}</button>}
-              {recording && <span className="recording-status" role="status">Recording musical events</span>}
-              {replaying && <span className="recording-status" role="status">Replaying recording</span>}
+              {recording && <span className="recording-status" role="status">Recording<span className="visually-hidden"> musical events</span></span>}
+              {replaying && <span className="recording-status" role="status">Replaying<span className="visually-hidden"> recording</span></span>}
               <span className="pedal-status">{input.sustain ? 'Pedal on' : 'Pedal off'}</span>
               <button className="stop-all-button" type="button" onClick={stopAll}>Stop all</button>
             </div>

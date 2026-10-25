@@ -41,6 +41,7 @@ body {
   width: min(100% - 48px, 1248px);
   margin: 64px auto;
 }
+.play-layout { --minimum-play-height: 512; }
 .app-bar {
   display: flex;
   flex-wrap: wrap;
@@ -363,6 +364,7 @@ progress {
 }
 
 @media (max-width: 700px) {
+  .play-layout { --minimum-play-height: 552; }
   .piano-app {
     width: calc(100% - 24px);
     margin: 24px auto;
@@ -433,6 +435,7 @@ progress {
 }
 
 @media (max-height: 600px) and (min-width: 500px) {
+  .play-layout { --minimum-play-height: 244; }
   .piano-app {
     width: calc(100% - 16px);
     margin: 8px auto;
@@ -495,6 +498,20 @@ progress {
   .preview-status, .pedal-status { display: none; }
 }
 
+@media (max-height: 340px) and (min-width: 500px) {
+  .piano-app { margin: 0 auto; }
+  .app-bar { margin-bottom: 4px; }
+  .wordmark { display: none; }
+  .app-bar nav { flex: 1; }
+  .app-bar nav button { flex: 1; }
+  .play-layout { --minimum-play-height: 235; }
+  .fallboard { min-height: 40px; padding: 4px 8px; }
+  .key-surface { height: clamp(145px, calc(var(--play-height) - 90px), 264px); }
+  .audio-controls button { padding: 4px; line-height: 1.2; }
+  .recording-status { grid-column: 1 / -1; grid-row: 1; font-size: 0.75rem; line-height: 1.5; }
+  .audio-controls:has(.recording-status) > p { display: none; }
+}
+
 .space-guide {
   padding: 32px 20px;
   background: var(--surface);
@@ -511,6 +528,7 @@ progress {
 @media (max-width: 599px) {
   .settings-panel { grid-template-columns: minmax(0, 1fr); }
   .piano-app.is-compact { width: calc(100% - 8px); margin: 12px auto; }
+  .is-compact .play-layout { --minimum-play-height: 396; }
   .is-compact .app-bar { padding-inline: 8px; }
   .is-compact .piano-cabinet { padding: 0; }
   .is-compact .piano-lid { height: 8px; }

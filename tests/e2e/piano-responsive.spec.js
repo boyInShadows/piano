@@ -63,6 +63,25 @@ test('landscape and tablet geometry retains usable keys and controls', async ({ 
   }
 });
 
+test('phone browser bars leave room for playable landscape keys and rotation recovery', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 838, height: 286 });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Enable sound', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Enable sound', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
+  await assertGeometry(page, { width: 838, height: 286 }, testInfo);
+  await page.getByRole('button', { name: 'Record', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Recording musical events' })).toBeVisible();
+  await assertGeometry(page, { width: 838, height: 286 }, testInfo);
+  await page.getByRole('button', { name: 'Stop recording', exact: true }).click();
+  await page.setViewportSize({ width: 393, height: 766 });
+  await expect(page.getByRole('heading', { name: 'Rotate your phone to play' })).toBeVisible();
+  await page.getByRole('button', { name: 'Use compact keyboard' }).click();
+  await assertGeometry(page, { width: 393, height: 766 }, testInfo);
+  await page.setViewportSize({ width: 838, height: 286 });
+  await assertGeometry(page, { width: 838, height: 286 }, testInfo);
+});
+
 test('rotation and shrinking space clear held notes and pedal without recreating audio', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await page.addInitScript(() => {
@@ -139,10 +158,14 @@ test('unusable compact space explains the limit while preserving navigation and 
 async function assertGeometry(page, viewport, testInfo) {
   await expect(page.locator('.piano-key--white').first()).toBeVisible();
   await expect.poll(async () => (await page.locator('.piano-key--white').first().boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(44);
+  await expect.poll(async () => {
+    const box = await page.locator('.piano-key--white').first().boundingBox();
+    return box ? box.y + box.height : Infinity;
+  }).toBeLessThanOrEqual(viewport.height);
   const measured = await page.evaluate(() => {
     const boxes = (selector) => [...document.querySelectorAll(selector)].filter((node) => node.getClientRects().length).map((node) => {
       const { x, y, width, height, right, bottom } = node.getBoundingClientRect();
-      return { x, y, width, height, right, bottom };
+      return { label: node.getAttribute('aria-label') || node.textContent, x, y, width, height, right, bottom };
     });
     return { white: boxes('.piano-key--white'), black: boxes('.piano-key--black'), controls: boxes('.app-bar button, .range-bar button, .audio-controls button, .audio-controls input'), overflow: document.documentElement.scrollWidth > innerWidth };
   });
@@ -152,13 +175,13 @@ async function assertGeometry(page, viewport, testInfo) {
     expect(box.height).toBeGreaterThanOrEqual(140);
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.right).toBeLessThanOrEqual(viewport.width);
-    expect(box.bottom).toBeLessThanOrEqual(viewport.height);
+    expect(box.bottom, box.label).toBeLessThanOrEqual(viewport.height);
   }
   for (const box of measured.black) expect(box.width).toBeGreaterThanOrEqual(24);
   for (const box of measured.controls) {
     expect(box.width).toBeGreaterThanOrEqual(44);
     expect(box.height).toBeGreaterThanOrEqual(44);
-    expect(box.bottom).toBeLessThanOrEqual(viewport.height);
+    expect(box.bottom, box.label).toBeLessThanOrEqual(viewport.height);
   }
   const path = testInfo.outputPath(`geometry-${viewport.width}-${viewport.height}.json`);
   await writeFile(path, JSON.stringify(measured, null, 2));
