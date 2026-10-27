@@ -256,7 +256,7 @@ export default function PianoApp() {
               {audio.status === 'loading' && <progress aria-label="Piano samples loaded" value={audio.loaded} max={soundbank.samples.length} />}
               {audio.status === 'failed' && <p className="sound-error">Sound could not start. Try again.</p>}
             </div>
-            <PianoKeyboard compact={compact} onCompact={!compact && viewport.portrait && viewport.width < 600 ? chooseCompact : undefined}
+            <PianoKeyboard compact={compact} onActivate={enableSound} onCompact={!compact && viewport.portrait && viewport.width < 600 ? chooseCompact : undefined}
               showNotes={showNotes} showShortcuts={showShortcuts} ready={audio.status === 'ready'} disabled={replaying} pressedNotes={pressedNotes}
               onPress={input.press} onMove={input.move} onRelease={input.release} onMomentary={input.setMomentary} onStopAll={stopAll} />
             <div className="front-rail" aria-hidden="true" />
