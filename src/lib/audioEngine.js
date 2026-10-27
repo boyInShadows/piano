@@ -85,7 +85,11 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
 
   function enable() {
     if (disposed) return Promise.resolve(false);
-    if (pending) return pending;
+    if (pending) {
+      // A touch-down may wait for a completed tap before the browser allows audio.
+      if (nativeContext.state !== 'running') nativeContext.resume().catch(() => {});
+      return pending;
+    }
     let resumed;
     try {
       if (!nativeContext) {

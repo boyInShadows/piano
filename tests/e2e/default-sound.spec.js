@@ -1,5 +1,45 @@
 import { expect, test } from '@playwright/test';
 
+test.describe('mobile audio unlock', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 838, height: 286 } });
+
+  test('a completed touch retries a pending audio unlock without playing a released note', async ({ page }) => {
+    await page.addInitScript(() => {
+      const NativeContext = window.AudioContext;
+      let completedTouch = false;
+      window.addEventListener('pointerup', () => { completedTouch = true; }, true);
+      window.AudioContext = class extends NativeContext {
+        resume() {
+          if (completedTouch) return super.resume();
+          return new Promise((resolve, reject) => {
+            this.addEventListener('statechange', () => {
+              if (this.state === 'running') resolve();
+            });
+            super.suspend().catch(reject);
+          });
+        }
+      };
+    });
+    await page.goto('/');
+    const key = page.getByRole('button', { name: 'C4', exact: true });
+    await expect(key).toBeVisible();
+    const bounds = await key.boundingBox();
+    const touch = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height * 0.85 };
+    const session = await page.context().newCDPSession(page);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [touch] });
+    await expect(page.getByRole('progressbar', { name: 'Piano samples loaded' })).toBeVisible();
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
+    expect(await page.evaluate(() => window.pianoStarts)).toBe(0);
+    await expect(key).toHaveAttribute('aria-pressed', 'false');
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [touch] });
+    await expect(key).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.evaluate(() => window.pianoStarts)).toBe(1);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(key).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.pianoStarts = 0;
@@ -54,6 +94,8 @@ test('the first keyboard shortcut activates and plays while held', async ({ page
 });
 
 test('reobserving an unchanged keyboard width preserves the first held note', async ({ page }) => {
+  // The fixture needs an octave-count change to recreate the resize observer.
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.addInitScript(() => {
     const NativeObserver = window.ResizeObserver;
     let keyboardMeasurements = 0;

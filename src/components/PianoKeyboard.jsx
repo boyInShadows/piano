@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createKeyLayout, getNoteName, getOctavesForWidth, getShortcutLabel, getShortcutNote } from '../lib/pianoNotes';
 
-export default function PianoKeyboard({ compact, onCompact, showNotes, showShortcuts, ready, disabled = false, pressedNotes, onPress, onMove, onRelease, onMomentary, onStopAll }) {
+export default function PianoKeyboard({ compact, onCompact, showNotes, showShortcuts, ready, disabled = false, pressedNotes, onPress, onMove, onRelease, onMomentary, onStopAll, onActivate }) {
   const viewport = useRef(null);
   const previousWidth = useRef(null);
   const [octaves, setOctaves] = useState(2);
@@ -71,6 +71,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
 
   function pointerEnd(event) {
     onRelease(`pointer:${event.pointerId}`);
+    if (event.type === 'pointerup' && event.pointerType !== 'mouse' && !ready && !disabled && fits) void onActivate?.();
     if (viewport.current.hasPointerCapture(event.pointerId)) viewport.current.releasePointerCapture(event.pointerId);
   }
 
