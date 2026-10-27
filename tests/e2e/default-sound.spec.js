@@ -94,6 +94,8 @@ test('the first keyboard shortcut activates and plays while held', async ({ page
 });
 
 test('reobserving an unchanged keyboard width preserves the first held note', async ({ page }) => {
+  // The fixture needs an octave-count change to recreate the resize observer.
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.addInitScript(() => {
     const NativeObserver = window.ResizeObserver;
     let keyboardMeasurements = 0;
