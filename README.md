@@ -2,7 +2,13 @@
 
 A browser piano based on a restrained polished-black acoustic instrument. V1 scope is free play, sustain, a metronome, and recording/replay saved in this browser. The owner name is fixed in V1.
 
-The piano fills the browser viewport with polished-black cabinetry, beveled ivory and black DOM keys, red felt and the fixed brass inscription. The ready view contains the instrument, octave arrows and one Settings gear. Sampled A0–C8 notes, physical-keyboard chords, mouse/pen/touch input, glissando, sustain, volume/mute, metronome, preferences and browser-local recording/replay are playable on `development`. Narrow touch phones offer rotation guidance and a compact fallback; short landscape compresses the cabinet while preserving usable keys.
+![Qazal's Piano running locally at a desktop viewport](docs/artifacts/showcase/piano-desktop.png)
+
+This personal instrument uses real DOM keys and a self-hosted licensed sample bank.
+The captures show the production build, not a design mockup. Browser automation
+and phone emulation do not establish physical touch, listening or acoustic-latency acceptance.
+
+The piano fills the browser viewport with polished-black cabinetry, beveled ivory and black DOM keys, red felt and the fixed brass inscription. The ready view contains the instrument, octave arrows and one Settings gear. Sampled A0–C8 notes, physical-keyboard chords, mouse/pen/touch input, glissando, sustain, volume/mute, metronome, preferences and browser-local recording/replay are implemented in this checkout; `development` is the product working branch. Narrow touch phones offer rotation guidance and a compact fallback; short landscape compresses the cabinet while preserving usable keys.
 
 Click/touch a piano key to activate sound automatically, or focus the piano and use physical US-position shortcuts `A W S E D F T G Y H U J K O L P ;`. The first interaction loads the sampled piano: held keys sound when ready; released keys stay silent. Browsers require this initial gesture. Manual **Enable sound** is also available in Settings > Controls. Hold Space for momentary sustain, use Latch sustain for a held pedal, and press Escape or Stop all to clear notes. Arrow keys move focus between piano keys; Enter auditions the focused note. Range changes, blur, hidden pages and audio interruptions clear ownership so old notes cannot restart automatically.
 
@@ -17,6 +23,13 @@ After enabling sound, open Controls, switch **Metronome** on and adjust **Tempo*
 Volume, note/shortcut hints and BPM persist in this browser when storage permits. Sound activation, mute, sustain, running metronome and held notes reset on reload. Invalid saved values use safe defaults; blocked storage keeps session changes and shows a warning in Settings.
 
 ## Run and verify
+
+Clone the public application before installing its locked dependencies:
+
+```sh
+git clone https://github.com/boyInShadows/piano.git
+cd piano
+```
 
 Use Node.js 24 LTS and npm. Verified locally with Node 24.11.1 and npm 11.6.2. Dependencies are pinned in `package-lock.json`: Next.js 16.4.3 and React 19.3.1.
 
@@ -33,7 +46,7 @@ npm run check
 npm run test:dev
 ```
 
-The browser tests use installed Microsoft Edge (Chromium). Skip the browser-install command if Edge is already installed, as on this PC. `check` runs lint, the production build, 42 unit tests and 51 production browser journeys; `test:unit` and `test:browser` run those suites separately, while `test:dev` verifies the development server. Journeys use one worker so real audio-clock and performance measurements do not compete with other tests. Run the suites sequentially with source unchanged: both browser runners own port 3217 and the same output directory. Coverage includes SSR/hydration, native/fallback Settings dismissal and focus, full-page geometry, source ownership, native pointer capture, emulated touch/pen, first-key activation, startup cancellation, retry/resume, measured audio signal, all-register source dispatch, portrait fallback, repeated rotation, zoom/enlarged text, metronome timing/mute/cleanup, preference/storage recovery, local recording/replay and a desktop performance baseline. Reports and screenshots stay local under `docs/artifacts/playwright-report/` and `docs/artifacts/test-results/`. No additional browser was downloaded here. A different browser channel can be selected in `playwright.config.js` when expanding browser coverage.
+The browser tests use installed Microsoft Edge (Chromium). Skip the browser-install command if Edge is already installed, as on this PC. `check` runs lint, the production build, 42 unit tests and 52 production browser journeys; `test:unit` and `test:browser` run those suites separately, while `test:dev` verifies the development server. Journeys use one worker so real audio-clock and performance measurements do not compete with other tests. Run the suites sequentially with source unchanged: both browser runners own port 3217 and the same output directory. Coverage includes SSR/hydration, native/fallback Settings dismissal and focus, full-page geometry, source ownership, native pointer capture, emulated touch/pen, first-key activation, startup cancellation, retry/resume, measured audio signal, all-register source dispatch, portrait fallback, repeated rotation, zoom/enlarged text, metronome timing/mute/cleanup, preference/storage recovery, local recording/replay and a desktop performance baseline. Reports and screenshots stay local under `docs/artifacts/playwright-report/` and `docs/artifacts/test-results/`. No additional browser was downloaded here. A different browser channel can be selected in `playwright.config.js` when expanding browser coverage.
 
 For a production preview, run `npm run build` followed by `npm start`. This is a local preview, not a public deployment.
 
@@ -85,12 +98,33 @@ docs/design-concepts/ Local visual research
 docs/artifacts/      Local logs, screenshots, browser reports and graphs
 ```
 
-The local `docs/masterPlan.md` and `docs/astraTasks.md` contain Astra's specification and acceptance criteria. `docs/pending.md` tracks execution; `AGENTS.md` contains persistent project rules. Shared tools from `D:\coding\Tools` are linked for Codex and Claude through `D:\tools\agents-shared\skills`. Root agent instructions and tool configuration stay where their runtimes discover them.
-
-codebase-memory indexes the project for structural lookup. The initial source-only Graphify snapshot is kept in local `docs/artifacts/graphify/` with JSON, HTML, report, and health evidence. It covers T01 and is historical after the shell changes. Its AST graph has one unresolved stylesheet import because CSS is outside extraction coverage; inspect CSS directly. Ignored local plans and task logs must be backed up separately because Git does not include them. The file-move inventory is `docs/artifacts/structure-move-inventory.json`.
+The owner's plans, task logs, research and agent instructions are local-only. They
+are not needed to install or run this public checkout. Preserve them separately
+when handing off development work; Git does not include those ignored files.
+Only the two selected showcase captures in this README are published.
 
 Working defaults are a landscape-first phone keyboard with an accessible compact fallback, an adaptive desktop note range, English copy, one licensed grand-piano sound, and local recordings. Accounts, cloud sync, downloadable audio, lessons, MIDI, and name editing are deferred.
 
 Recordings will belong to the current browser and origin; clearing site data can remove them. Mobile readiness requires real iPhone Safari and Android Chrome testing.
 
 The metronome uses [Tone Clock callback timestamps](https://tonejs.github.io/docs/15.1.22/classes/Clock.html) for scheduled sound; animation frames only read audio time for beat visuals. Client preferences follow [React’s external-store hydration contract](https://react.dev/reference/react/useSyncExternalStore) with a stable default server snapshot.
+
+
+## Dated presentation check
+
+On 2026-10-30, the public `main` source at `e056e21` passed `npm run check`:
+lint, production build, 42 unit tests and 52 production Edge journeys. The public
+main/development file trees matched at review time. The uncommitted haptics work
+in the maintainer's original checkout was excluded from this review and publication.
+
+![Running piano at an emulated 568 by 320 landscape viewport](docs/artifacts/showcase/ready-landscape-568.png)
+
+The [preference store](src/lib/pianoPreferences.js) validates saved fields, restores
+safe defaults for invalid records and reports failed persistence while keeping
+session changes. Its existing tests cover these boundaries; no implementation
+change was needed. Physical Android/iPhone, independent finger release, output
+quality and acoustic latency remain separate acceptance work.
+
+The existing Netlify URL could not be reached from this review environment
+(web fetch, Node fetch and a timed-out curl request). The captures and passing
+checks above are local evidence; current public-site availability was not established.
