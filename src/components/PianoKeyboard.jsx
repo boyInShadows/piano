@@ -7,16 +7,18 @@ const piano = createKeyLayout();
 const middleC = piano.keys.find((key) => key.midi === 60).position;
 const octaveStarts = piano.keys.filter((key) => key.midi % 12 === 0).map((key) => key.position);
 
-export default function PianoKeyboard({ compact, onCompact, showNotes, showShortcuts, ready, disabled = false, pressedNotes, onPress, onMove, onRelease, onMomentary, onStopAll, onActivate }) {
+export default function PianoKeyboard({ compact, onCompact, showNotes, showShortcuts, ready, disabled = false, pressedNotes, onPress, onMove, onRelease, onMomentary, onStopAll, onActivate, fixedStart = null, handLabel, keyboardLabel = 'Piano keyboard' }) {
   const viewport = useRef(null);
   const previousWidth = useRef(null);
   const [pan, setPan] = useState(middleC);
   const [width, setWidth] = useState(0);
-  const whiteCount = compact ? 7 : getOctavesForWidth(width) * 7 + 1;
+  const fixed = fixedStart !== null;
+  const whiteCount = fixed ? Math.max(5, Math.min(15, Math.floor(width / 44))) : compact ? 7 : getOctavesForWidth(width) * 7 + 1;
   const fits = width >= whiteCount * 44;
   const keyWidth = width / whiteCount;
   const maximumPan = piano.whiteCount - whiteCount;
-  const offset = Math.max(0, Math.min(pan, maximumPan));
+  const requestedOffset = fixed ? piano.keys.find((key) => key.midi === fixedStart).position : pan;
+  const offset = Math.max(0, Math.min(requestedOffset, maximumPan));
   const visibleKeys = piano.keys.filter((key) => {
     const left = key.position - (key.accidental ? 0.32 : 0);
     const right = key.position + (key.accidental ? 0.32 : 1);
@@ -56,12 +58,12 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
     const focused = Number(event.target.closest('[data-midi]')?.dataset.midi ?? start);
     if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
       event.preventDefault();
-      const next = Math.max(piano.start, Math.min(piano.end, focused + (event.code === 'ArrowLeft' ? -1 : 1)));
+      const next = Math.max(fixed ? start : piano.start, Math.min(fixed ? end : piano.end, focused + (event.code === 'ArrowLeft' ? -1 : 1)));
       const key = piano.keys[next - piano.start];
       const left = key.position - (key.accidental ? 0.32 : 0);
       const right = key.position + (key.accidental ? 0.32 : 1);
-      if (left < offset) setPan(left);
-      else if (right > offset + whiteCount) setPan(right - whiteCount);
+      if (!fixed && left < offset) setPan(left);
+      else if (!fixed && right > offset + whiteCount) setPan(right - whiteCount);
       viewport.current.querySelector(`[data-midi="${next}"]`)?.focus({ preventScroll: true });
       return;
     }
@@ -100,7 +102,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
     <>
       <div className="key-frame">
         <div
-          className="key-viewport" ref={viewport} tabIndex={fits ? 0 : -1} role="group" aria-label="Piano keyboard"
+          className="key-viewport" ref={viewport} tabIndex={fits ? 0 : -1} role="group" aria-label={keyboardLabel}
           style={{ WebkitTapHighlightColor: 'transparent' }}
           onKeyDown={keyDown} onPointerDown={pointerDown}
           onPointerMove={(event) => { if (!disabled && fits) onMove(`pointer:${event.pointerId}`, noteAtPoint(event)); }}
@@ -108,7 +110,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
         >
           {!fits && <div className="keyboard-space-guide"><p>This window is too narrow for this key range.</p>{onCompact ? <button type="button" onClick={onCompact}>Use compact keyboard</button> : <p>Use a wider window or zoom out. Help and Recordings are still available.</p>}</div>}
           <div className="key-surface" hidden={!fits} style={{ width: `${piano.whiteCount * keyWidth}px`, transform: `translateX(${-offset * keyWidth}px)` }}>
-            {piano.keys.map((key) => (
+            {(fixed ? visibleKeys : piano.keys).map((key) => (
               <button
                 key={key.midi}
                 type="button"
@@ -133,7 +135,10 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
           </div>
         </div>
       </div>
-      <div className="range-bar">
+      {fixed ? <div className="range-bar fixed-range">
+        <span>{handLabel}</span>
+        <output aria-label={`${handLabel} note range`}>{rangeLabel}</output>
+      </div> : <div className="range-bar">
         <button type="button" aria-label="Lower octave" disabled={offset === 0 || !fits} onClick={() => setPan(octaveStarts.findLast((start) => start < offset) ?? 0)}>
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5" /></svg>
           <span className="visually-hidden">Lower octave</span>
@@ -150,7 +155,7 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
           <span className="visually-hidden">Higher octave</span>
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>
         </button>
-      </div>
+      </div>}
     </>
   );
 }

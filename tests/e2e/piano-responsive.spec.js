@@ -40,7 +40,7 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   expect([...reached].sort((a, b) => a - b)).toEqual(Array.from({ length: 88 }, (_, index) => index + 21));
   for (let step = 0; step < 4; step += 1) await lower.click();
   await page.setViewportSize({ width: 844, height: 390 });
-  await expect(page.locator('.piano-key[aria-hidden="false"]')).toHaveCount(25);
+  await expect(page.locator('.piano-key[aria-hidden="false"]')).toHaveCount(26);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('.piano-key[aria-hidden="false"]')).toHaveCount(12);
   await expect(page.locator('.play-layout')).toHaveCSS('height', '844px');
@@ -138,7 +138,7 @@ test('rotation and shrinking space clear held notes and pedal without recreating
   await page.keyboard.down('a');
   await toggleSettings(page);
   await expect(page.getByRole('heading', { name: 'Piano settings' })).toBeVisible();
-  await expect(page.locator('.key-surface')).toBeVisible();
+  await expect(page.locator('.key-surface').first()).toBeVisible();
   await toggleSettings(page);
   await page.keyboard.up('a');
   await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
