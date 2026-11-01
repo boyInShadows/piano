@@ -19,6 +19,7 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
   let tone;
   let master;
   let limiter;
+  let output;
   let pending;
   let controller;
   let disposed = false;
@@ -50,15 +51,19 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
   function finish(voice) {
     voice.source.onended = null;
     voice.source.disconnect();
-    voice.envelope.disconnect();
+    voice.envelope.dispose();
     voices.delete(voice.source);
   }
 
   function releaseVoice(voice, duration = 0.15, at = nativeContext.currentTime) {
     voice.held = false;
     voice.releasing = true;
-    voice.envelope.gain.cancelAndHoldAtTime(at);
-    voice.envelope.gain.linearRampToValueAtTime(0, at + duration);
+    const gain = voice.envelope.gain;
+    const value = gain.getValueAtTime(at);
+    gain.cancelScheduledValues(at);
+    // Preserve the attack or release ramp leading up to this time.
+    gain.linearRampToValueAtTime(value, at);
+    gain.linearRampToValueAtTime(0, at + duration);
     voice.source.stop(at + duration);
   }
 
@@ -114,8 +119,11 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
           tone.setContext(toneContext);
           master = new tone.Gain({ context: toneContext, gain: muted ? 0 : volume });
           limiter = new tone.Limiter({ context: toneContext, threshold: -1 });
+          output = new tone.Gain({ context: toneContext, gain: muted ? 0 : 1 });
           master.connect(limiter);
-          limiter.connect(toneContext.destination);
+          limiter.connect(output);
+          // Use the native output without initializing Tone's unused spatial listener.
+          output.connect(nativeContext.destination);
         }
         if (!buffers.size) {
           const attempt = new AbortController();
@@ -142,8 +150,10 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
         metronome = undefined;
         master?.dispose();
         limiter?.dispose();
+        output?.dispose();
         master = null;
         limiter = null;
+        output = null;
         publish('failed');
         return false;
       } finally {
@@ -169,12 +179,12 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     }
     const root = [...buffers.keys()].reduce((best, note) => Math.abs(note - midi) <= Math.abs(best - midi) ? note : best);
     const source = nativeContext.createBufferSource();
-    const envelope = nativeContext.createGain();
+    const envelope = new tone.Gain({ context: toneContext, gain: 0 });
     source.buffer = buffers.get(root);
     source.playbackRate.value = 2 ** ((midi - root) / 12);
     envelope.gain.setValueAtTime(0, when);
     envelope.gain.linearRampToValueAtTime(0.7, when + 0.003);
-    source.connect(envelope);
+    source.connect(envelope.input);
     envelope.connect(master.input);
     const voice = { midi, source, envelope, held: true, releasing: false };
     voices.set(source, voice);
@@ -212,6 +222,8 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
   function setMuted(value) {
     muted = Boolean(value);
     master?.gain.rampTo(muted ? 0 : volume, 0.02, nativeContext.currentTime);
+    // Gate limiter tails as well as the instrument and metronome inputs.
+    output?.gain.rampTo(muted ? 0 : 1, 0.02, nativeContext.currentTime);
   }
 
   function startMetronome(bpm) {
@@ -253,6 +265,7 @@ export function createAudioEngine(onState, loadTone = loadToneClasses) {
     nativeContext?.removeEventListener('statechange', handleStateChange);
     master?.dispose();
     limiter?.dispose();
+    output?.dispose();
     if (toneContext) toneContext.dispose();
     else if (nativeContext && nativeContext.state !== 'closed') nativeContext.close().catch(() => {});
   }
