@@ -18,32 +18,21 @@ test('uses the full A0–C8 range and rejects invalid notes', () => {
 });
 
 test('positions the two/three accidental groups at white-key boundaries', () => {
-  const layout = createKeyLayout(60, 1);
-  assert.equal(layout.whiteCount, 8);
-  assert.deepEqual(layout.keys.filter((key) => key.accidental).map((key) => [key.name, key.position]), [
+  const layout = createKeyLayout();
+  const middle = layout.keys.filter((key) => key.midi >= 60 && key.midi <= 72);
+  assert.deepEqual(middle.filter((key) => key.accidental).map((key) => [key.name, key.position - 23]), [
     ['C#4', 1], ['D#4', 2], ['F#4', 4], ['G#4', 5], ['A#4', 6],
   ]);
-  assert.deepEqual(layout.keys.filter((key) => !key.accidental).map((key) => key.name), [
+  assert.deepEqual(middle.filter((key) => !key.accidental).map((key) => key.name), [
     'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5',
   ]);
 });
 
-test('clamps navigation at both ends and reaches every piano note', () => {
-  for (const octaves of [1, 2, 3]) {
-    assert.equal(createKeyLayout(-100, octaves).start, 21);
-    assert.equal(createKeyLayout(500, octaves).end, 108);
-    const reached = new Set();
-    let start = 21;
-    while (true) {
-      const layout = createKeyLayout(start, octaves);
-      layout.keys.forEach((key) => reached.add(key.midi));
-      if (layout.end === 108) break;
-      start = layout.start + 12;
-    }
-    assert.deepEqual([...reached].sort((a, b) => a - b), Array.from({ length: 88 }, (_, index) => index + 21));
-  }
-  assert.throws(() => createKeyLayout(60, 0), RangeError);
-  assert.throws(() => createKeyLayout(NaN, 1), RangeError);
+test('one continuous strip contains every piano pitch exactly once', () => {
+  const layout = createKeyLayout();
+  assert.equal(layout.start, 21);
+  assert.equal(layout.end, 108);
+  assert.deepEqual(layout.keys.map((key) => key.midi), Array.from({ length: 88 }, (_, index) => index + 21));
 });
 
 test('reduces visible octaves before reducing key widths', () => {
@@ -53,24 +42,16 @@ test('reduces visible octaves before reducing key widths', () => {
   assert.equal(getOctavesForWidth(320), 1);
 });
 
-test('compact windows fit seven white targets and still reach all 88 notes', () => {
-  const middle = createKeyLayout(60, 1, true);
-  assert.equal(middle.end, 71);
-  assert.equal(middle.whiteCount, 7);
-  const reached = new Set();
-  let start = 21;
-  for (let window = 0; window < 10; window += 1) {
-    const layout = createKeyLayout(start, 1, true);
-    assert.ok(layout.whiteCount <= 7);
-    assert.equal(layout.keys[0].accidental, false);
-    assert.equal(layout.keys.at(-1).accidental, false);
-    layout.keys.forEach((key) => reached.add(key.midi));
-    if (layout.end === 108) break;
-    start = Math.floor(layout.start / 12) * 12 + 12;
+test('the strip has 52 consecutive natural keys with accidentals at interior boundaries', () => {
+  const layout = createKeyLayout();
+  assert.equal(layout.whiteCount, 52);
+  assert.deepEqual(layout.keys.filter((key) => !key.accidental).map((key) => key.position), Array.from({ length: 52 }, (_, index) => index));
+  assert.equal(layout.keys.find((key) => key.midi === 60).position, 23);
+  for (const key of layout.keys.filter((key) => key.accidental)) {
+    assert.ok(key.position > 0 && key.position < layout.whiteCount);
+    assert.ok(!layout.keys.find((other) => other.midi === key.midi - 1).accidental);
+    assert.ok(!layout.keys.find((other) => other.midi === key.midi + 1).accidental);
   }
-  assert.equal(createKeyLayout(-100, 1, true).start, 21);
-  assert.equal(createKeyLayout(500, 1, true).end, 108);
-  assert.deepEqual([...reached].sort((a, b) => a - b), Array.from({ length: 88 }, (_, index) => index + 21));
 });
 
 test('maps physical codes to visible notes and keeps the low partial octave honest', () => {

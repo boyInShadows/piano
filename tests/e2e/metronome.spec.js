@@ -76,7 +76,7 @@ test('metronome stays gesture gated, schedules 4/4 on the audio clock, and survi
   expect(await page.evaluate(() => window.metronomeAudio.contexts.length)).toBe(1);
 });
 
-test('rapid toggles, stop-all, range, focus, visibility, settings and suspension leave no running click', async ({ page }) => {
+test('rapid toggles, stop-all, focus, visibility, settings and suspension leave no running click', async ({ page }) => {
   await ready(page);
   await openSettings(page);
   const toggle = page.getByRole('button', { name: 'Metronome', exact: true, includeHidden: true });
@@ -84,7 +84,6 @@ test('rapid toggles, stop-all, range, focus, visibility, settings and suspension
   for (let cycle = 0; cycle < 4; cycle += 1) { await openSettings(page); await toggle.click(); await openSettings(page); await toggle.click(); }
   const interruptions = [
     () => page.getByRole('button', { name: 'Stop all', exact: true }).click(),
-    () => page.getByRole('button', { name: 'Higher octave' }).click(),
     () => page.evaluate(() => window.dispatchEvent(new Event('blur'))),
     () => page.evaluate(() => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: true });

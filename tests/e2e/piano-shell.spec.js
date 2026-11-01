@@ -46,7 +46,7 @@ test('serves the selected piano shell and navigates without browser errors', asy
 test('adapts the key window and keeps both extremes reachable', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  const keys = page.locator('.piano-key');
+  const keys = page.locator('.piano-key[aria-hidden="false"]');
   await expect(keys).toHaveCount(37);
   const next = page.getByRole('button', { name: 'Higher octave' });
   const previous = page.getByRole('button', { name: 'Lower octave' });
@@ -61,14 +61,14 @@ test('adapts the key window and keeps both extremes reachable', async ({ page },
   await expect(keys).toHaveCount(25);
   await page.setViewportSize({ width: 568, height: 320 });
   await expect(keys).toHaveCount(13);
-  const firstWhite = await page.locator('.piano-key--white').first().boundingBox();
-  const firstBlack = await page.locator('.piano-key--black').first().boundingBox();
+  const firstWhite = await page.locator('.piano-key--white[aria-hidden="false"]').first().boundingBox();
+  const firstBlack = await page.locator('.piano-key--black[aria-hidden="false"]').first().boundingBox();
   expect(firstWhite.width).toBeGreaterThanOrEqual(44);
   expect(firstBlack.width).toBeGreaterThanOrEqual(24);
   const target = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.dataset.midi, {
     x: firstBlack.x + firstBlack.width / 2,
     y: firstBlack.y + firstBlack.height / 2,
   });
-  expect(target).toBe(await page.locator('.piano-key--black').first().getAttribute('data-midi'));
+  expect(target).toBe(await page.locator('.piano-key--black[aria-hidden="false"]').first().getAttribute('data-midi'));
   await page.screenshot({ path: testInfo.outputPath('landscape.png'), fullPage: true });
 });

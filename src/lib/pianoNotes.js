@@ -19,24 +19,16 @@ export function getOctavesForWidth(width) {
   return 1;
 }
 
-export function createKeyLayout(requestedStart, octaves, compact = false) {
-  if (!Number.isInteger(requestedStart) || ![1, 2, 3].includes(octaves)) {
-    throw new RangeError('Use an integer range start and one to three octaves.');
-  }
-  let start = compact
-    ? Math.max(21, Math.min(Math.floor(requestedStart / 12) * 12, 98))
-    : Math.max(21, Math.min(requestedStart, 108 - octaves * 12));
-  if (NOTE_NAMES[start % 12].includes('#')) start -= 1;
-  const end = compact ? (start === 98 ? 108 : Math.floor(start / 12) * 12 + 11) : start + octaves * 12;
+export function createKeyLayout() {
   const keys = [];
   let whiteCount = 0;
-  for (let midi = start; midi <= end; midi += 1) {
+  for (let midi = 21; midi <= 108; midi += 1) {
     const name = getNoteName(midi);
     const accidental = name.includes('#');
     keys.push({ midi, name, accidental, position: whiteCount });
     if (!accidental) whiteCount += 1;
   }
-  return { start, end, keys, whiteCount };
+  return { start: 21, end: 108, keys, whiteCount };
 }
 
 export function getShortcutNote(code, start, end) {
