@@ -123,6 +123,13 @@ test('overlapping hand ranges share pitch ownership until both fingers release',
 });
 
 test('fixed ranges can reach A0 and C8 while arrow focus stays inside the chosen zone', async ({ page }) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  await openSettings(page);
+  const melody = page.getByRole('combobox', { name: 'Melody starting note', exact: true });
+  await expect(melody.locator('option[value="69"]')).toHaveCount(1);
+  await melody.selectOption('69');
+  await closeSettings(page);
+  for (const name of ['A4', 'B4', 'C5']) await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
   await openSettings(page);
   await page.getByRole('combobox', { name: 'Bass starting note', exact: true }).selectOption('21');
   await page.getByRole('combobox', { name: 'Melody starting note', exact: true }).selectOption('108');

@@ -12,9 +12,9 @@ import soundbank from '../../public/audio/piano/salamander-v1/manifest.json';
 import PianoKeyboard from './PianoKeyboard';
 import PianoSpaceGuide from './PianoSpaceGuide';
 import MetronomeControl from './MetronomeControl';
-import { getNoteName } from '../lib/pianoNotes';
+import { createKeyLayout, getNoteName } from '../lib/pianoNotes';
 
-const rangeStarts = [21, ...Array.from({ length: 8 }, (_, index) => 24 + index * 12)];
+const rangeStarts = createKeyLayout().keys.filter((key) => !key.accidental).map((key) => key.midi);
 
 export default function PianoApp() {
   const [view, setView] = useState('Controls');
