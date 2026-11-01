@@ -83,7 +83,11 @@ export default function PianoKeyboard({ compact, onCompact, showNotes, showShort
     event.preventDefault();
     viewport.current.focus({ preventScroll: true });
     viewport.current.setPointerCapture(event.pointerId);
-    onPress(`pointer:${event.pointerId}`, midi);
+    const pressed = onPress(`pointer:${event.pointerId}`, midi);
+    if (pressed && event.pointerType === 'touch') {
+      try { navigator.vibrate?.(10); }
+      catch { /* Optional haptics must never interrupt playing. */ }
+    }
   }
 
   function pointerEnd(event) {
