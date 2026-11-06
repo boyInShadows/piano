@@ -15,7 +15,7 @@ test('rotation guidance demonstrates the turn and keeps the compact fallback rea
   expect(bounds.width).toBeGreaterThan(bounds.height);
   await expect(guide.getByText(/rotation lock/)).toBeVisible();
   await guide.getByRole('button', { name: 'Use compact keyboard' }).click();
-  await expect(page.locator('.piano-key')).toHaveCount(12);
+  await expect(page.locator('.piano-key[aria-hidden="false"]')).toHaveCount(12);
 });
 
 test('reduced motion presents the landscape phone without animation', async ({ page }) => {

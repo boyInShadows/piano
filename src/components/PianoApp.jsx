@@ -12,10 +12,16 @@ import soundbank from '../../public/audio/piano/salamander-v1/manifest.json';
 import PianoKeyboard from './PianoKeyboard';
 import PianoSpaceGuide from './PianoSpaceGuide';
 import MetronomeControl from './MetronomeControl';
+import { createKeyLayout, getNoteName } from '../lib/pianoNotes';
+
+const rangeStarts = createKeyLayout().keys.filter((key) => !key.accidental).map((key) => key.midi);
 
 export default function PianoApp() {
   const [view, setView] = useState('Controls');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [keyboardLayout, setKeyboardLayout] = useState('auto');
+  const [bassStart, setBassStart] = useState(36);
+  const [melodyStart, setMelodyStart] = useState(60);
   const [preferenceStore] = useState(createPreferenceStore);
   const { preferences, error: preferenceError } = useSyncExternalStore(preferenceStore.subscribe, preferenceStore.getSnapshot, preferenceStore.getServerSnapshot);
   const { volume, showNotes, showShortcuts, bpm } = preferences;
@@ -138,6 +144,8 @@ export default function PianoApp() {
   const [compactChoice, setCompactChoice] = useState(false);
   const compact = compactChoice && viewport.portrait && viewport.width < 600;
   const gated = (viewport.rotate && !compact) || viewport.availableHeight < viewport.minimumHeight;
+  const performanceLayout = !compact && (keyboardLayout === 'performance' ||
+    (keyboardLayout === 'auto' && viewport.coarse && !viewport.portrait && viewport.width < 1000));
 
   function chooseCompact() {
     stopAll();
@@ -232,6 +240,18 @@ export default function PianoApp() {
     });
   }
 
+  const keyboardProps = {
+    compact, onActivate: enableSound, showNotes, showShortcuts, ready: audio.status === 'ready', disabled: replaying, pressedNotes,
+    onPress: input.press, onMove: input.move, onRelease: input.release, onMomentary: input.setMomentary, onStopAll: stopAll,
+  };
+
+  function changeStartingNote(event, setStart) {
+    const value = Number(event.target.value);
+    if (!rangeStarts.includes(value)) return;
+    stopAll();
+    setStart(value);
+  }
+
   return (
     <main className={`piano-app${compact ? ' is-compact' : ''}`}>
       <button className="settings-button" ref={settingsButton} type="button" aria-label="Settings"
@@ -256,9 +276,10 @@ export default function PianoApp() {
               {audio.status === 'loading' && <progress aria-label="Piano samples loaded" value={audio.loaded} max={soundbank.samples.length} />}
               {audio.status === 'failed' && <p className="sound-error">Sound could not start. Try again.</p>}
             </div>
-            <PianoKeyboard compact={compact} onActivate={enableSound} onCompact={!compact && viewport.portrait && viewport.width < 600 ? chooseCompact : undefined}
-              showNotes={showNotes} showShortcuts={showShortcuts} ready={audio.status === 'ready'} disabled={replaying} pressedNotes={pressedNotes}
-              onPress={input.press} onMove={input.move} onRelease={input.release} onMomentary={input.setMomentary} onStopAll={stopAll} />
+            {performanceLayout ? <div className="performance-keyboards">
+              <div className="performance-bank"><PianoKeyboard {...keyboardProps} fixedStart={bassStart} handLabel="Bass" keyboardLabel="Bass keyboard" /></div>
+              <div className="performance-bank"><PianoKeyboard {...keyboardProps} fixedStart={melodyStart} handLabel="Melody" /></div>
+            </div> : <PianoKeyboard {...keyboardProps} onCompact={!compact && viewport.portrait && viewport.width < 600 ? chooseCompact : undefined} />}
             <div className="front-rail" aria-hidden="true" />
           </div>
         )}
@@ -284,6 +305,32 @@ export default function PianoApp() {
           ))}
         </nav>
         <section className="controls-panel" hidden={view !== 'Controls'} aria-label="Sound and playing controls">
+          <fieldset className="keyboard-setup" disabled={recording || replaying}>
+            <legend>Playing layout</legend>
+            <label>Keyboard layout
+              <select value={keyboardLayout} onChange={(event) => {
+                if (!['auto', 'performance', 'continuous'].includes(event.target.value)) return;
+                stopAll(); setKeyboardLayout(event.target.value);
+              }}>
+                <option value="auto">Automatic</option>
+                <option value="performance">Fixed bass and melody</option>
+                <option value="continuous">Continuous keyboard</option>
+              </select>
+            </label>
+            {keyboardLayout !== 'continuous' && <>
+              <label>Bass starting note
+                <select value={bassStart} onChange={(event) => changeStartingNote(event, setBassStart)}>
+                  {rangeStarts.map((note) => <option key={note} value={note}>{getNoteName(note)}</option>)}
+                </select>
+              </label>
+              <label>Melody starting note
+                <select value={melodyStart} onChange={(event) => changeStartingNote(event, setMelodyStart)}>
+                  {rangeStarts.map((note) => <option key={note} value={note}>{getNoteName(note)}</option>)}
+                </select>
+              </label>
+            </>}
+          </fieldset>
+          <p>Automatic gives landscape phones fixed bass and melody zones. Set the ranges before playing; setup is locked during recording and replay. These choices last until reload.</p>
           <div className="preferences">
             <label className="hint-setting">
               <input type="checkbox" checked={showNotes} onChange={(event) => preferenceStore.update({ showNotes: event.target.checked })} />
@@ -355,10 +402,11 @@ export default function PianoApp() {
         </section>
         <section className="content-panel" hidden={view !== 'Help'} aria-labelledby="help-title">
           <h2 id="help-title" ref={helpTitle} tabIndex={-1}>Playing {PIANO_TITLE}</h2>
-          <p>Use Lower octave and Higher octave to explore the piano from A0 to C8.</p>
+          <p>Landscape phones use fixed Bass and Melody zones so both hands can play without scrolling. Set each starting note in Controls before playing. The range labels show which notes fit; wider screens show more notes without shrinking touch targets. Setup is locked during recording and replay.</p>
+          <p>Choose Continuous keyboard in Controls to explore A0–C8 with the navigation rail. Drag the rail or tap it to jump; octave arrows nudge the view and C4 returns to Middle C. Panning preserves held notes and running transport. Automatic uses the continuous keyboard on desktop and in portrait compact mode.</p>
           <p>Open the gear for sound, sustain, metronome, recording, saved takes and Help. Close with the X, Escape, or a tap outside the panel.</p>
           <p>Click or touch a key to start sound automatically. The first play loads the piano; a key you keep held will sound when ready. Released keys stay silent. Drag across the keyboard to slide between notes. Focus the piano to use physical US-position shortcuts, or use the arrow keys and hold Enter to audition a note.</p>
-          <p>Space is a momentary pedal while the piano has focus. Latch sustain keeps the pedal down until switched off. Stop all or Escape clears notes and both pedal states. Leaving the page, changing range, or losing focus also releases notes.</p>
+          <p>Space is a momentary pedal while the piano has focus. Latch sustain keeps the pedal down until switched off. Stop all or Escape clears notes and both pedal states. Leaving the page, resizing the layout, or losing window focus also releases notes. Drag across keys to play a slide; use the separate rail to move the keyboard.</p>
           <p>After enabling sound, switch Metronome on and adjust Tempo from 40 to 240 BPM. The four numbers mark the beat; beat one has a higher click. Mute silences the piano and click while the beat keeps running. Stop all, Help/Recordings navigation or an interruption stops the metronome; it does not restart automatically. Opening Settings keeps transport controls available.</p>
           <p>Volume, note names, shortcut hints and tempo are saved in this browser when storage is available. Sound activation, mute, sustain and running transport reset on reload. Compact mode lasts only until reload.</p>
           <p>On a small screen, turn your phone sideways for larger keys. If rotation is locked, choose Use compact keyboard on the Play screen. This choice lasts until you reload; landscape automatically restores the larger range. If keys cannot fit, zoom out or use a wider window. Settings opens over the instrument without resizing it.</p>

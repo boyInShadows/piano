@@ -33,7 +33,7 @@ body {
   white-space: nowrap;
 }
 ::selection { background: #5e5035; color: var(--ink); }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button {
   min-width: 44px;
   min-height: 44px;
@@ -46,7 +46,7 @@ button {
 }
 button:hover:not(:disabled) { background: #34342f; }
 button:disabled { cursor: default; color: #96938b; }
-button:focus-visible, input:focus-visible, .key-viewport:focus-visible, h2:focus-visible {
+button:focus-visible, input:focus-visible, select:focus-visible, .key-viewport:focus-visible, h2:focus-visible {
   outline: 2px solid var(--brass);
   outline-offset: 3px;
 }
@@ -127,7 +127,10 @@ h1 {
 .fallboard progress { width: min(120px, 100%); height: 6px; accent-color: var(--brass); }
 .sound-error { margin: 0; color: var(--ink); font-size: 14px; text-align: center; }
 .key-frame { flex: 1; min-height: 0; padding: 8px 6px 0; background: #060708; box-shadow: inset 0 5px 6px #000; }
-.key-viewport { height: 100%; min-width: 0; }
+.key-viewport { height: 100%; min-width: 0; overflow: hidden; }
+.performance-keyboards { display: flex; flex: 1; min-height: 0; gap: 12px; }
+.performance-bank { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.fixed-range { justify-content: center; gap: 12px; font-size: 12px; }
 .key-surface {
   position: relative;
   height: 100%;
@@ -195,6 +198,14 @@ h1 {
 .shortcut-label { font-size: 12px; font-weight: 600; }
 .range-bar { flex: 0 0 44px; display: flex; justify-content: space-between; align-items: center; color: var(--brass); background: linear-gradient(#050607, #141719); border-top: 1px solid #292b2d; }
 .range-bar button { padding: 8px; border: 0; }
+.range-bar output { flex: 0 0 70px; text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; }
+.keyboard-pan { flex: 1; min-width: 44px; display: flex; align-items: center; gap: 8px; padding: 0 8px; }
+.keyboard-pan span { font-size: 11px; }
+.range-bar input[type="range"] { width: 100%; min-width: 44px; min-height: 44px; margin: 0; accent-color: var(--brass); cursor: ew-resize; }
+@media (max-width: 599px) {
+  .keyboard-pan { gap: 0; padding: 0 4px; }
+  .keyboard-pan span { display: none; }
+}
 .front-rail { flex: 0 0 clamp(12px, calc(var(--play-height) * 0.02), 24px); border-top: 2px solid #383a3c; background: linear-gradient(#141617, #060708); }
 .settings-panel {
   display: none;
@@ -225,6 +236,10 @@ nav { display: flex; gap: 4px; margin: 20px 0 24px; border-bottom: 1px solid #4b
 nav button { flex: 1; padding: 8px; border: 0; border-radius: 0; font-size: 14px; }
 button[aria-current="page"] { color: var(--brass); box-shadow: inset 0 -2px var(--brass); }
 .preferences { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.keyboard-setup { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.keyboard-setup legend { margin-bottom: 12px; }
+.keyboard-setup label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 12px; }
+.keyboard-setup select { width: 100%; min-width: 0; min-height: 44px; padding: 8px; color: var(--ink); background: var(--surface); border: 1px solid #4d4c46; border-radius: 4px; }
 .preferences label { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; min-height: 44px; }
 .preferences .hint-setting { display: grid; grid-template-columns: 20px minmax(0, 1fr); grid-column: 1 / -1; }
 input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--brass); }

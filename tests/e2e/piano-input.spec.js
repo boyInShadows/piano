@@ -91,7 +91,7 @@ test('mouse and keyboard share ownership, glissando uses hit testing, and Escape
   await page.mouse.up();
 });
 
-test('sustain, range changes, focus loss and typing guards preserve safe note state', async ({ page }) => {
+test('panning preserves sustain and held pitches while focus loss and typing guards stay safe', async ({ page }) => {
   await clickControl(page, 'Latch sustain');
   await closeSettings(page);
   await page.getByRole('group', { name: 'Piano keyboard', exact: true }).focus();
@@ -102,10 +102,14 @@ test('sustain, range changes, focus loss and typing guards preserve safe note st
   await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.down('d');
   await page.getByRole('button', { name: 'Higher octave' }).click();
-  await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('[data-midi="64"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.up('d');
+  await expect(page.locator('.piano-key[aria-pressed="true"]')).toHaveCount(0);
+  await clickControl(page, 'Stop all');
+  await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
   const before = await page.evaluate(() => window.pianoAudio.starts.length);
+  await closeSettings(page);
   await toggleSettings(page);
   await page.getByRole('slider', { name: 'Volume' }).focus();
   await page.keyboard.press('a');

@@ -17,7 +17,7 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   await expect(page.getByRole('heading', { name: 'Rotate your phone to play' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('portrait-guide.png') });
   await page.getByRole('button', { name: 'Use compact keyboard' }).click();
-  await expect(page.locator('.piano-key')).toHaveCount(12);
+  await expect(page.locator('.piano-key[aria-hidden="false"]')).toHaveCount(12);
   await closeSettings(page);
   await enableSound(page);
   await expect(page.getByRole('status').filter({ hasText: 'Sound ready' })).toBeVisible();
@@ -32,7 +32,7 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   for (let step = 0; step < 10 && await lower.isEnabled(); step += 1) await lower.click();
   await expect(lower).toBeDisabled();
   for (let step = 0; step < 10; step += 1) {
-    (await page.locator('.piano-key').evaluateAll((keys) => keys.map((key) => Number(key.dataset.midi)))).forEach((midi) => reached.add(midi));
+    (await page.locator('.piano-key[aria-hidden="false"]').evaluateAll((keys) => keys.map((key) => Number(key.dataset.midi)))).forEach((midi) => reached.add(midi));
     if (await higher.isDisabled()) break;
     await higher.click();
   }
@@ -40,9 +40,9 @@ test('portrait guidance keeps navigation reachable and compact keys usable', asy
   expect([...reached].sort((a, b) => a - b)).toEqual(Array.from({ length: 88 }, (_, index) => index + 21));
   for (let step = 0; step < 4; step += 1) await lower.click();
   await page.setViewportSize({ width: 844, height: 390 });
-  await expect(page.locator('.piano-key')).toHaveCount(25);
+  await expect(page.locator('.piano-key[aria-hidden="false"]')).toHaveCount(26);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator('.piano-key')).toHaveCount(12);
+  await expect(page.locator('.piano-key[aria-hidden="false"]')).toHaveCount(12);
   await expect(page.locator('.play-layout')).toHaveCSS('height', '844px');
   await assertGeometry(page, { width: 390, height: 844 }, testInfo);
   await closeSettings(page);
@@ -138,7 +138,7 @@ test('rotation and shrinking space clear held notes and pedal without recreating
   await page.keyboard.down('a');
   await toggleSettings(page);
   await expect(page.getByRole('heading', { name: 'Piano settings' })).toBeVisible();
-  await expect(page.locator('.key-surface')).toBeVisible();
+  await expect(page.locator('.key-surface').first()).toBeVisible();
   await toggleSettings(page);
   await page.keyboard.up('a');
   await expect(page.getByRole('button', { name: 'Latch sustain', includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
@@ -168,10 +168,10 @@ test('unusable compact space explains the limit while preserving navigation and 
 });
 
 async function assertGeometry(page, viewport, testInfo) {
-  await expect(page.locator('.piano-key--white').first()).toBeVisible();
-  await expect.poll(async () => (await page.locator('.piano-key--white').first().boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(44);
+  await expect(page.locator('.piano-key--white[aria-hidden="false"]').first()).toBeVisible();
+  await expect.poll(async () => (await page.locator('.piano-key--white[aria-hidden="false"]').first().boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(44);
   await expect.poll(async () => {
-    const box = await page.locator('.piano-key--white').first().boundingBox();
+    const box = await page.locator('.piano-key--white[aria-hidden="false"]').first().boundingBox();
     return box ? box.y + box.height : Infinity;
   }).toBeLessThanOrEqual(viewport.height);
   const measured = await page.evaluate(() => {
@@ -179,7 +179,7 @@ async function assertGeometry(page, viewport, testInfo) {
       const { x, y, width, height, right, bottom } = node.getBoundingClientRect();
       return { label: node.getAttribute('aria-label') || node.textContent, x, y, width, height, right, bottom };
     });
-    return { white: boxes('.piano-key--white'), black: boxes('.piano-key--black'), controls: boxes('.settings-button, .range-bar button, .audio-controls button, .audio-controls input'), overflow: document.documentElement.scrollWidth > innerWidth };
+    return { white: boxes('.piano-key--white[aria-hidden="false"]'), black: boxes('.piano-key--black[aria-hidden="false"]'), controls: boxes('.settings-button, .range-bar button, .range-bar input, .audio-controls button, .audio-controls input'), overflow: document.documentElement.scrollWidth > innerWidth };
   });
   expect(measured.overflow).toBe(false);
   for (const box of measured.white) {

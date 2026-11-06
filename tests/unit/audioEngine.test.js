@@ -15,8 +15,10 @@ function setup() {
   const states = [];
   const ramps = [];
   const clocks = [];
+  const connections = [];
+  const envelopeValues = [];
   class NativeContext extends EventTarget {
-    constructor() { super(); this.state = 'suspended'; this.currentTime = 10; contexts.push(this); }
+    constructor() { super(); this.state = 'suspended'; this.currentTime = 10; this.destination = {}; contexts.push(this); }
     async resume() { this.state = 'running'; }
     async close() { this.state = 'closed'; }
     async decodeAudioData() { return { length: 4410, numberOfChannels: 2, duration: 0.1 }; }
@@ -31,8 +33,14 @@ function setup() {
     dispose() { this.raw.close(); }
   }
   class Node {
-    constructor() { this.input = {}; this.gain = { rampTo: (...args) => ramps.push(args), cancelAndHoldAtTime() {}, setValueAtTime() {}, linearRampToValueAtTime() {} }; }
-    connect() { return this; }
+    constructor() { this.input = {}; this.gain = {
+      rampTo: (...args) => ramps.push(args), cancelAndHoldAtTime() {},
+      getValueAtTime: (time) => { envelopeValues.push(['read', time]); return 0.42; },
+      cancelScheduledValues: (time) => envelopeValues.push(['cancel', time]),
+      setValueAtTime: (...args) => envelopeValues.push(['set', ...args]),
+      linearRampToValueAtTime: (...args) => envelopeValues.push(['ramp', ...args]),
+    }; }
+    connect(destination) { connections.push(destination); return this; }
     dispose() { this.disposed = true; }
     disconnect() { this.disposed = true; }
   }
@@ -54,9 +62,23 @@ function setup() {
   };
   const loadTone = async () => ({ Context, Clock, Gain: Node, Limiter: Node, ToneBufferSource: Voice, setContext() {} });
   const engine = createAudioEngine((state) => states.push(state), loadTone);
-  return { engine, contexts, sources, requests, states, ramps, clocks, loadTone,
+  return { engine, contexts, sources, requests, states, ramps, clocks, loadTone, connections, envelopeValues,
     cleanup() { engine.dispose(); globalThis.AudioContext = previousContext; globalThis.fetch = previousFetch; globalThis.requestAnimationFrame = previousRequest; globalThis.cancelAnimationFrame = previousCancel; } };
 }
+
+test('native output and tracked envelopes work without spatial listeners or native hold automation', async () => {
+  const f = setup();
+  try {
+    await f.engine.enable();
+    assert.equal(f.connections.at(-1), f.contexts[0].destination);
+    f.contexts[0].createGain = () => { throw new Error('Use the existing Tone gain envelope'); };
+    assert.equal(f.engine.attack(60), true);
+    f.envelopeValues.length = 0;
+    const releaseTime = 10.0018;
+    f.engine.release(60, releaseTime);
+    assert.deepEqual(f.envelopeValues, [['read', releaseTime], ['cancel', releaseTime], ['ramp', 0.42, releaseTime], ['ramp', 0, releaseTime + 0.15]]);
+  } finally { f.cleanup(); }
+});
 
 test('metronome shares the ready engine and is stopped by global cleanup, suspension and disposal', async () => {
   const f = setup();
@@ -147,7 +169,7 @@ test('volume and mute ramp at the immediate clock time and preserve the chosen l
     fixture.engine.setMuted(true);
     fixture.engine.setVolume(0.4);
     fixture.engine.setMuted(false);
-    assert.deepEqual(fixture.ramps, [[0.6, 0.02, 10], [0, 0.02, 10], [0, 0.02, 10], [0.4, 0.02, 10]]);
+    assert.deepEqual(fixture.ramps, [[0.6, 0.02, 10], [0, 0.02, 10], [0, 0.02, 10], [0, 0.02, 10], [0.4, 0.02, 10], [1, 0.02, 10]]);
     for (const value of [-1, 1.1, NaN, Infinity]) assert.throws(() => fixture.engine.setVolume(value), RangeError);
   } finally { fixture.cleanup(); }
 });
